@@ -1,0 +1,57 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../brand.css">
+<style>
+  #stage { position: relative; width: 1920px; height: 1080px; overflow: hidden; }
+  #title {
+    position: absolute; left: 0; right: 0; top: 50%;
+    text-align: center; font-family: var(--font-display);
+    font-weight: 700; font-size: 128px; letter-spacing: -0.03em;
+  }
+  #title span { display: inline-block; white-space: pre; }
+  #bar {
+    position: absolute; left: 50%; top: 640px; height: 10px;
+    background: var(--accent); border-radius: 5px;
+  }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="title"></div>
+  <div id="bar"></div>
+</div>
+<script>
+  window.DURATION = 3;
+  window.SIZE = [1920, 1080];
+
+  const text = "Hello from my studio";
+  const title = document.getElementById("title");
+  const bar = document.getElementById("bar");
+  const chars = [...text].map(ch => {
+    const s = document.createElement("span");
+    s.textContent = ch;
+    title.appendChild(s);
+    return s;
+  });
+
+  const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+  const easeOut = x => 1 - Math.pow(1 - clamp(x), 3);
+  const easeIn = x => Math.pow(clamp(x), 3);
+
+  // Pure function of t: same t always gives the same frame.
+  window.render = function (t) {
+    const out = easeIn((t - 2.5) / 0.5);           // fade out over the last 0.5 s
+    chars.forEach((s, i) => {
+      const p = easeOut((t - 0.1 - i * 0.03) / 0.6); // letters rise in, staggered
+      s.style.opacity = p * (1 - out);
+      s.style.transform = `translateY(${(1 - p) * 60 - 64}px)`;
+    });
+    const w = 520 * easeOut((t - 0.6) / 0.7) * (1 - out);
+    bar.style.width = w + "px";
+    bar.style.marginLeft = -w / 2 + "px";
+  };
+</script>
+</body>
+</html>

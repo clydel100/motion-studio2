@@ -1,0 +1,26 @@
+/* Brand tokens — edit these to restyle every video. */
+:root {
+  /* Colors */
+  --bg:      #0E0F13;
+  --surface: #1A1C23;
+  --text:    #F5F3EE;
+  --muted:   #9A9AA5;
+  --accent:  #FF5A36;
+  --accent-2:#4B6BFB;
+
+  /* Fonts (must be installed locally so renders are identical every time) */
+  --font-display: "Inter Display", "Inter", system-ui, sans-serif;
+  --font-body:    "Inter", system-ui, sans-serif;
+  --font-mono:    "JetBrains Mono", ui-monospace, monospace;
+}
+
+/* Base frame: every video is a fixed-size stage. */
+html, body {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
