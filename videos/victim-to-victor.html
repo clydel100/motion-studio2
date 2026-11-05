@@ -96,7 +96,7 @@
     { n: "2", head: "Repentance",     line: "Repentance means changing how we think." },
     { n: "3", head: "Transformation", line: "From transformation comes freedom." },
   ];
-  const STEP_START = 3.0, STEP_EVERY = 3.0, STEP_LEN = 3.4, END_START = 12.0;
+  const STEP_START = 3.0, STEP_EVERY = 3.0, STEP_LEN = 2.95, END_START = 12.0;
 
   const $ = s => document.querySelector(s);
   const stepsEl = $("#steps");
@@ -132,7 +132,7 @@
     $("#deep").style.opacity = (1 - inP(t, 0, 0.9)) + 0.5 * easeInOut((t - END_START) / 1.2);
 
     // ---- Scene 1: title (0.0-3.4) ----
-    const titleOut = outP(t, 3.0, 0.4);
+    const titleOut = outP(t, 2.6, 0.4);
     titleWords.forEach((w, i) => {
       const p = inP(t, 0.4 + i * 0.22, 1.1);
       w.style.transform = `translateY(${(1 - p) * 108}%)`;
@@ -157,9 +157,9 @@
       const pn = inP(t, S, 1.0);
       set(s.num, pn, `translateY(${(1 - pn) * 70}px)`);
       s.div.style.transform = `scaleY(${inP(t, S + 0.1, 0.9)})`;
-      const ph = inP(t, S + 0.3, 1.0);
+      const ph = inP(t, S + 0.2, 0.9);
       set(s.head, ph, `translateX(${(1 - ph) * 70}px)`);
-      const pl = inP(t, S + 0.6, 0.9);
+      const pl = inP(t, S + 0.4, 0.8);
       set(s.line, pl, `translateY(${(1 - pl) * 16}px)`);
     });
 
