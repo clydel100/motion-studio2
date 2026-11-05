@@ -1,0 +1,169 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../brand.css">
+<style>
+  /* Vertical 9:16 for TikTok, Instagram Reels and Stories.
+     Content stays inside y 170-1480 and x 90-990, clear of the apps' buttons and captions. */
+  #stage {
+    position: relative; width: 1080px; height: 1920px; overflow: hidden;
+    background: radial-gradient(ellipse 95% 70% at 50% 42%, var(--royal-blue) 0%, var(--royal-blue) 30%, var(--deep-blue) 100%);
+  }
+  .abs { position: absolute; }
+  .layer { position: absolute; inset: 0; pointer-events: none; }
+  #deep { background: var(--deep-blue); }
+  #bloom { background: radial-gradient(ellipse 60% 30% at 50% 44%, rgba(244, 248, 255, 0.10), rgba(244, 248, 255, 0) 70%); }
+
+  .mask { overflow: hidden; padding: 0.06em 0 0.08em; display: flex; justify-content: center; }
+  .rise { display: inline-block; }
+  .center { left: 90px; right: 90px; text-align: center; }
+
+  #question { top: 640px; font-size: 92px; line-height: 1.02; }
+  #words { top: 650px; font-size: 88px; line-height: 1.04; }
+  #words .gold { color: var(--accent); }
+
+  /* Cover */
+  #cover-wrap { left: 0; right: 0; top: 230px; height: 820px; display: flex; justify-content: center; perspective: 2000px; }
+  #cover-glow {
+    position: absolute; left: 50%; top: 50%; width: 1200px; height: 1200px; margin: -600px 0 0 -600px;
+    background: radial-gradient(circle, rgba(255, 221, 87, 0.20) 0%, rgba(255, 221, 87, 0.06) 35%, rgba(255, 221, 87, 0) 62%);
+  }
+  #cover-card { position: relative; transform-origin: 50% 0; }
+  #cover {
+    position: relative; z-index: 1; display: block; height: 820px; width: auto; border-radius: 3px;
+    box-shadow: 0 40px 90px 10px var(--deep-blue), 0 12px 30px var(--deep-blue);
+  }
+  #cover-sheen { position: absolute; inset: 0; z-index: 2; border-radius: 3px; pointer-events: none;
+    background: linear-gradient(105deg, rgba(244, 248, 255, 0) 30%, rgba(244, 248, 255, 0.16) 48%, rgba(244, 248, 255, 0) 62%);
+    background-size: 300% 100%; }
+
+  /* Title group under the cover */
+  #eyebrow { top: 1118px; font-size: 28px; letter-spacing: 0.26em; text-transform: uppercase; color: var(--accent-soft); }
+  #title { top: 1166px; font-size: 96px; }
+  #subtitle { top: 1294px; font-size: 32px; letter-spacing: 0.16em; color: var(--luminous-white); }
+  #rule1 { top: 1366px; left: 50%; height: 3px; background: var(--accent); }
+  #author { top: 1398px; font-size: 36px; }
+
+  /* Closing card */
+  #quote { top: 812px; font-family: var(--font-serif); font-weight: 500; font-size: 66px; line-height: 1.16; color: var(--warm-ivory); }
+  #attrib { top: 1124px; font-size: 34px; letter-spacing: 0.08em; color: var(--accent-soft); }
+  #rule2 { top: 1206px; left: 50%; height: 3px; background: var(--accent); }
+  #cta { top: 1236px; font-size: 48px; letter-spacing: 0.1em; color: var(--accent); }
+  #search { top: 1318px; font-size: 32px; line-height: 1.4; letter-spacing: 0.06em; color: var(--luminous-white); }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="deep" class="layer"></div>
+  <div id="bloom" class="layer"></div>
+
+  <div id="question" class="abs center headline">
+    <div class="mask"><span class="rise">What have I</span></div>
+    <div class="mask"><span class="rise">believed about</span></div>
+    <div class="mask"><span class="rise">myself that You</span></div>
+    <div class="mask"><span class="rise">never said?</span></div>
+  </div>
+
+  <div id="words" class="abs center headline">
+    <div class="mask"><span class="rise">Confession.</span></div>
+    <div class="mask"><span class="rise">Repentance.</span></div>
+    <div class="mask"><span class="rise gold">Transformation.</span></div>
+  </div>
+
+  <div id="cover-wrap" class="abs">
+    <div id="cover-card">
+      <div id="cover-glow"></div>
+      <img id="cover" alt="">
+      <div id="cover-sheen"></div>
+    </div>
+  </div>
+
+  <div id="eyebrow" class="abs center body">Discovering Your True Identity</div>
+  <div id="title" class="abs center headline">Be Made Whole</div>
+  <div id="subtitle" class="abs center body">30-DAY COMPANION DEVOTIONAL</div>
+  <div id="rule1" class="abs"></div>
+  <div id="author" class="abs center author">Clyde Lewis</div>
+
+  <div id="quote" class="abs center">“Your past may be part of your story, but it does not get to write&nbsp;the&nbsp;ending.”</div>
+  <div id="attrib" class="abs center body">— Clyde Lewis</div>
+  <div id="rule2" class="abs"></div>
+  <div id="cta" class="abs center headline">Get Your Copy on Amazon</div>
+  <div id="search" class="abs center body">SEARCH: CLYDE LEWIS<br>BE MADE WHOLE 30-DAY DEVOTIONAL</div>
+</div>
+<script>
+  window.DURATION = 15;
+  window.SIZE = [1080, 1920];
+
+  // The real book cover, shared with the 16:9 version.
+  const COVER_FILES = ["devotional-cover.png", "devotional-cover.jpg", "devotional-cover.jpeg", "devotional-cover.webp"];
+  const coverImg = document.getElementById("cover");
+  let hasCover = false;
+  window.READY = (async () => {
+    for (const f of COVER_FILES) {
+      coverImg.src = "../assets/" + f;
+      try { await coverImg.decode(); hasCover = true; return; } catch (e) { /* try next */ }
+    }
+    coverImg.removeAttribute("src");
+  })();
+
+  const $ = s => document.querySelector(s);
+  const qLines = [...document.querySelectorAll("#question .rise")];
+  const words = [...document.querySelectorAll("#words .rise")];
+
+  const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+  const easeOut = x => 1 - Math.pow(1 - clamp(x), 5);
+  const easeIn = x => { x = clamp(x); return x * x * x; };
+  const easeInOut = x => { x = clamp(x); return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2; };
+  const inP = (t, s, d) => easeOut((t - s) / d);
+  const outP = (t, s, d) => easeIn((t - s) / d);
+  const show = (el, o, dy = 0) => { el.style.opacity = o; el.style.transform = `translateY(${dy}px)`; };
+  const growRule = (el, t, s, w) => { const v = w * inP(t, s, 0.8); el.style.width = v + "px"; el.style.marginLeft = -v / 2 + "px"; };
+
+  window.render = function (t) {
+    $("#deep").style.opacity = 1 - inP(t, 0, 1.0);
+
+    // Opening question (0.0-3.4)
+    $("#bloom").style.opacity = easeInOut(t / 2.4) * (1 - outP(t, 3.0, 0.5));
+    qLines.forEach((l, i) => { l.style.transform = `translateY(${(1 - inP(t, 0.3 + i * 0.22, 1.2)) * 110}%)`; });
+    const qo = outP(t, 2.95, 0.45);
+    show($("#question"), 1 - qo, -36 * qo);
+
+    // Three words (3.4-6.4)
+    words.forEach((w, i) => { w.style.transform = `translateY(${(1 - inP(t, 3.45 + i * 0.8, 0.9)) * 110}%)`; });
+    const wo = outP(t, 5.95, 0.45);
+    show($("#words"), 1 - wo, -36 * wo);
+
+    // Cover reveal (from 6.4), then it rises and settles smaller above the closing quote (9.4-10.8).
+    const pc = inP(t, 6.4, 1.6);
+    const settle = easeInOut((t - 9.4) / 1.4);
+    const floatY = Math.sin((t - 6.4) * Math.PI * 2 / 5) * 7 * pc;
+    const rot = -9 * (1 - pc) - 3 + 2 * settle;
+    const scale = (0.95 + 0.05 * pc) * (1 - 0.32 * settle);
+    const card = $("#cover-card");
+    card.style.opacity = hasCover ? pc : 0;
+    card.style.transform = `translateY(${(1 - pc) * 70 + floatY - 30 * settle}px) rotateY(${rot}deg) scale(${scale})`;
+    $("#cover-glow").style.opacity = hasCover ? inP(t, 6.7, 2.0) * (0.85 + 0.15 * Math.sin(t * 1.3)) : 0;
+    $("#cover-sheen").style.backgroundPosition = `${100 - 100 * easeInOut((t - 7.6) / 1.8)}% 0`;
+    $("#cover-sheen").style.opacity = hasCover ? 1 : 0;
+
+    // Title group under the cover (6.9-9.9)
+    const go = outP(t, 9.3, 0.45);
+    show($("#eyebrow"), inP(t, 6.9, 0.9) * (1 - go), (1 - inP(t, 6.9, 0.9)) * 14 + 20 * go);
+    show($("#title"), inP(t, 7.1, 1.0) * (1 - go), (1 - inP(t, 7.1, 1.0)) * 30 + 20 * go);
+    show($("#subtitle"), inP(t, 7.5, 0.9) * (1 - go), (1 - inP(t, 7.5, 0.9)) * 14 + 20 * go);
+    growRule($("#rule1"), t, 7.7, 96); $("#rule1").style.opacity = 1 - go;
+    const pa = inP(t, 7.8, 1.0);
+    $("#author").style.opacity = pa * (1 - go);
+    $("#author").style.letterSpacing = (0.46 - 0.14 * pa) + "em";
+
+    // Closing quote and call to action (10.0-15.0)
+    show($("#quote"), inP(t, 10.0, 1.1), (1 - inP(t, 10.0, 1.1)) * 22);
+    show($("#attrib"), inP(t, 10.6, 0.9), (1 - inP(t, 10.6, 0.9)) * 12);
+    growRule($("#rule2"), t, 11.0, 96);
+    show($("#cta"), inP(t, 11.2, 0.9), (1 - inP(t, 11.2, 0.9)) * 16);
+    show($("#search"), inP(t, 11.5, 0.9), (1 - inP(t, 11.5, 0.9)) * 12);
+  };
+</script>
+</body>
+</html>
