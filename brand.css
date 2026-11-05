@@ -1,20 +1,54 @@
-/* Brand tokens — edit these to restyle every video. */
-:root {
-  /* Colors */
-  --bg:      #0E0F13;
-  --surface: #1A1C23;
-  --text:    #F5F3EE;
-  --muted:   #9A9AA5;
-  --accent:  #FF5A36;
-  --accent-2:#4B6BFB;
+/* ==========================================================================
+   Be Made Whole™ — Official Brand Tokens
+   Book brand created by author Clyde Lewis.
+   Use for book promotions, social graphics, video, devotionals and marketing.
+   Do not substitute colors or fonts without authorization.
+   ========================================================================== */
 
-  /* Fonts (must be installed locally so renders are identical every time) */
-  --font-display: "Inter Display", "Inter", system-ui, sans-serif;
-  --font-body:    "Inter", system-ui, sans-serif;
-  --font-mono:    "JetBrains Mono", ui-monospace, monospace;
+/* Fonts: Lato (Google Fonts, SIL Open Font License, see fonts/OFL.txt).
+   Loaded from the local fonts/ folder so every render works offline. */
+@font-face {
+  font-family: "Lato";
+  src: url("fonts/Lato-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: block;
+}
+@font-face {
+  font-family: "Lato";
+  src: url("fonts/Lato-Black.ttf") format("truetype"); /* Lato Heavy / Black, 900 */
+  font-weight: 900;
+  font-style: normal;
+  font-display: block;
 }
 
-/* Base frame: every video is a fixed-size stage. */
+:root {
+  /* Brand colors (exact values) */
+  --royal-blue:  #123F70;  /* Background */
+  --warm-gold:   #FFDF62;  /* Accent */
+  --soft-ivory:  #F8F6EF;  /* Text */
+  --muted-blue:  #A9B9C9;  /* Muted */
+
+  /* Roles */
+  --bg:     var(--royal-blue);
+  --accent: var(--warm-gold);
+  --text:   var(--soft-ivory);
+  --muted:  var(--muted-blue);
+
+  /* Typography */
+  --font-headline: "Lato", "Helvetica Neue", Arial, sans-serif;
+  --font-body:     "Lato", "Helvetica Neue", Arial, sans-serif;
+  --weight-headline: 900;
+  --weight-body:     400;
+  --font-display: var(--font-headline); /* alias used by older videos */
+
+  /* Headline treatment: bold, elegant, readable */
+  --headline-tracking: 0.02em;
+  --headline-leading:  0.95;
+  /* Small caps labels (author name, eyebrows) */
+  --label-tracking: 0.32em;
+}
+
 html, body {
   margin: 0;
   padding: 0;
@@ -22,5 +56,37 @@ html, body {
   background: var(--bg);
   color: var(--text);
   font-family: var(--font-body);
+  font-weight: var(--weight-body);
   -webkit-font-smoothing: antialiased;
+  text-rendering: geometricPrecision;
+}
+
+/* Reusable type classes */
+.headline {
+  font-family: var(--font-headline);
+  font-weight: var(--weight-headline);
+  letter-spacing: var(--headline-tracking);
+  line-height: var(--headline-leading);
+  text-transform: uppercase;
+  color: var(--text);
+}
+.body {
+  font-family: var(--font-body);
+  font-weight: var(--weight-body);
+  line-height: 1.35;
+  color: var(--text);
+}
+.label {
+  font-family: var(--font-body);
+  font-weight: var(--weight-body);
+  letter-spacing: var(--label-tracking);
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.author {
+  font-family: var(--font-headline);
+  font-weight: var(--weight-headline);
+  letter-spacing: var(--label-tracking);
+  text-transform: uppercase;
+  color: var(--accent);
 }

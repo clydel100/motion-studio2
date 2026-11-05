@@ -3,7 +3,8 @@
 //
 //   node render.mjs videos/hello.html             -> out/hello.mp4
 //   node render.mjs videos/hello.html --stills 3  -> out/hello-still-1.png ... -3.png
-//   options: --fps 30 (default 30)
+//   node render.mjs videos/hello.html --still 4 --scale 2 -> out/hello-still.png (one frame at t=4s, 2x pixels)
+//   options: --fps 30 (default 30), --scale N (pixel density, default 1)
 //
 // A video page must define window.DURATION (seconds), window.SIZE ([w, h])
 // and window.render(t), which draws the exact frame for time t in seconds.
@@ -19,18 +20,22 @@ const require = createRequire(import.meta.url);
 const { chromium } = require("playwright");
 
 function parseArgs(argv) {
-  const opts = { input: null, fps: 30, stills: 0 };
+  const opts = { input: null, fps: 30, stills: 0, still: null, scale: 1 };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === "--stills") opts.stills = parseInt(argv[++i] ?? "3", 10);
     else if (a === "--fps") opts.fps = parseInt(argv[++i], 10);
+    else if (a === "--still") opts.still = parseFloat(argv[++i]);
+    else if (a === "--scale") opts.scale = parseFloat(argv[++i]);
     else if (!opts.input) opts.input = a;
     else throw new Error(`Unexpected argument: ${a}`);
   }
   if (!opts.input) {
-    console.error("Usage: node render.mjs videos/<name>.html [--stills N] [--fps 30]");
+    console.error("Usage: node render.mjs videos/<name>.html [--stills N | --still SECONDS] [--scale N] [--fps 30]");
     process.exit(1);
   }
+  if (opts.still !== null && !(opts.still >= 0)) throw new Error("--still needs a time in seconds");
+  if (!(opts.scale > 0)) throw new Error("--scale must be a positive number");
   if (!(opts.fps > 0)) throw new Error("--fps must be a positive number");
   if (Number.isNaN(opts.stills) || opts.stills < 0) throw new Error("--stills must be a positive number");
   return opts;
@@ -50,7 +55,7 @@ try {
   const [width, height] = await probe.evaluate(() => window.SIZE ?? [1920, 1080]);
   await probe.close();
 
-  const page = await browser.newPage({ viewport: { width, height }, deviceScaleFactor: 1 });
+  const page = await browser.newPage({ viewport: { width, height }, deviceScaleFactor: opts.scale });
   page.on("pageerror", (e) => console.error("Page error:", e.message));
   await page.goto(pathToFileURL(inputPath).href);
   // Kill any CSS animations/transitions so only render(t) moves things.
@@ -77,7 +82,13 @@ try {
     return page.screenshot({ type: "png", clip: { x: 0, y: 0, width, height } });
   };
 
-  if (opts.stills > 0) {
+  if (opts.still !== null) {
+    const { writeFileSync } = await import("node:fs");
+    const t = Math.min(opts.still, duration);
+    const file = path.join(outDir, `${name}-still.png`);
+    writeFileSync(file, await frameAt(t));
+    console.log(`Still at t=${t}s (${width * opts.scale}x${height * opts.scale}) -> ${path.relative(process.cwd(), file)}`);
+  } else if (opts.stills > 0) {
     const { writeFileSync } = await import("node:fs");
     const n = opts.stills;
     for (let i = 0; i < n; i++) {

@@ -1,0 +1,109 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../brand.css">
+<style>
+  #stage { position: relative; width: 1920px; height: 1080px; overflow: hidden; background: var(--bg); }
+  .abs { position: absolute; }
+
+  #eyebrow { left: 140px; top: 112px; font-size: 22px; }
+  #eyebrow-r { right: 140px; top: 112px; font-size: 22px; }
+
+  /* Each headline word sits in its own mask so it can rise into view. */
+  #headline { left: 132px; top: 186px; font-size: 176px; white-space: nowrap; display: flex; gap: 0.26em; }
+  #headline .mask { overflow: hidden; padding: 0.04em 0 0.06em; }
+  #headline .word { display: inline-block; }
+
+  #rule { left: 140px; top: 418px; height: 4px; background: var(--accent); }
+  #body { left: 140px; top: 452px; font-size: 46px; }
+  #author { left: 140px; top: 548px; font-size: 30px; }
+
+  #swatches { left: 140px; top: 700px; width: 1640px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 36px; }
+  .sw { will-change: transform, opacity; }
+  .chip { height: 150px; border-radius: 2px; }
+  .chip.on-bg { box-shadow: inset 0 0 0 1.5px rgba(248, 246, 239, 0.55); }
+  .sw-name { margin-top: 26px; font-size: 26px; font-weight: 900; color: var(--text); letter-spacing: 0.01em; }
+  .sw-meta { margin-top: 8px; font-size: 21px; display: flex; justify-content: space-between; }
+  .sw-meta .hex { color: var(--text); letter-spacing: 0.08em; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="eyebrow" class="abs label">Be Made Whole™ &nbsp;·&nbsp; Brand Identity</div>
+  <div id="eyebrow-r" class="abs label">Brand Check</div>
+
+  <div id="headline" class="abs headline">
+    <div class="mask"><span class="word">Be</span></div>
+    <div class="mask"><span class="word">Made</span></div>
+    <div class="mask"><span class="word">Whole</span></div>
+  </div>
+
+  <div id="rule" class="abs"></div>
+  <div id="body" class="abs body">Discover Your True Identity in Christ.</div>
+  <div id="author" class="abs author">Clyde Lewis</div>
+
+  <div id="swatches" class="abs"></div>
+</div>
+<script>
+  window.DURATION = 5;
+  window.SIZE = [1920, 1080];
+
+  const COLORS = [
+    { name: "Royal Blue",       role: "Background", hex: "#123F70", onBg: true },
+    { name: "Warm Gold",        role: "Accent",     hex: "#FFDF62" },
+    { name: "Soft Ivory White", role: "Text",       hex: "#F8F6EF" },
+    { name: "Muted Blue Gray",  role: "Muted",      hex: "#A9B9C9" },
+  ];
+
+  const swWrap = document.getElementById("swatches");
+  const swatches = COLORS.map(c => {
+    const el = document.createElement("div");
+    el.className = "sw";
+    el.innerHTML = `
+      <div class="chip${c.onBg ? " on-bg" : ""}" style="background:${c.hex}"></div>
+      <div class="sw-name">${c.name}</div>
+      <div class="sw-meta label"><span>${c.role}</span><span class="hex">${c.hex}</span></div>`;
+    swWrap.appendChild(el);
+    return el;
+  });
+
+  const $ = id => document.getElementById(id);
+  const words = [...document.querySelectorAll("#headline .word")];
+  const eyebrows = [$("eyebrow"), $("eyebrow-r")];
+
+  const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+  // Smooth, unhurried ease (quint out) for an editorial feel.
+  const ease = x => 1 - Math.pow(1 - clamp(x), 5);
+  const prog = (t, start, dur) => ease((t - start) / dur);
+
+  // Everything is a pure function of t.
+  window.render = function (t) {
+    eyebrows.forEach(el => { el.style.opacity = prog(t, 0.15, 0.9); });
+
+    words.forEach((w, i) => {
+      const p = prog(t, 0.35 + i * 0.16, 1.1);
+      w.style.transform = `translateY(${(1 - p) * 105}%)`;
+    });
+    // A very slow drift keeps the held frame alive without drawing attention.
+    $("headline").style.transform = `translateX(${(1 - prog(t, 0.35, 4.6)) * 18}px)`;
+
+    $("rule").style.width = 96 * prog(t, 1.15, 0.9) + "px";
+
+    const b = prog(t, 1.35, 1.0);
+    $("body").style.opacity = b;
+    $("body").style.transform = `translateY(${(1 - b) * 18}px)`;
+
+    const a = prog(t, 1.7, 1.2);
+    $("author").style.opacity = a;
+    $("author").style.letterSpacing = (0.5 - 0.18 * a) + "em";
+
+    swatches.forEach((el, i) => {
+      const p = prog(t, 2.05 + i * 0.14, 1.0);
+      el.style.opacity = p;
+      el.style.transform = `translateY(${(1 - p) * 28}px)`;
+    });
+  };
+</script>
+</body>
+</html>
