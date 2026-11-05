@@ -10,10 +10,10 @@ GET YOUR COPY ON AMAZON: https://a.co/d/0helZuRL
 
 ## Instagram
 
-Links in Instagram captions and in the video are NOT clickable. Put https://a.co/d/0helZuRL in your bio link or on a Story link sticker, and use this line in the caption:
+Links in Instagram captions and in the video are NOT clickable. Put https://a.co/d/0helZuRL in your bio link or on a Story link sticker. Caption line:
 
 ```
-GET YOUR COPY ON AMAZON (link in bio)
+GET YOUR COPY ON AMAZON
 ```
 
 ## Website / landing page
