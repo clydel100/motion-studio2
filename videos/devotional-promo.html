@@ -1,0 +1,170 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../brand.css">
+<style>
+  #stage {
+    position: relative; width: 1920px; height: 1080px; overflow: hidden;
+    background: radial-gradient(ellipse 80% 90% at 50% 45%, var(--royal-blue) 0%, var(--royal-blue) 30%, var(--deep-blue) 100%);
+  }
+  .abs { position: absolute; }
+  .layer { position: absolute; inset: 0; pointer-events: none; }
+  #deep { background: var(--deep-blue); }
+  /* Soft light that slowly blooms behind the opening question */
+  #bloom { background: radial-gradient(ellipse 45% 40% at 50% 46%, rgba(244, 248, 255, 0.10), rgba(244, 248, 255, 0) 70%); }
+
+  .mask { overflow: hidden; padding: 0.06em 0 0.08em; }
+  .rise { display: inline-block; }
+
+  /* Opening question */
+  #question { left: 0; right: 0; top: 404px; text-align: center; font-size: 80px; line-height: 1.02; }
+  #question .mask { display: flex; justify-content: center; }
+
+  /* Three words */
+  #words { left: 0; right: 0; top: 318px; text-align: center; font-size: 132px; line-height: 1; }
+  #words .mask { display: flex; justify-content: center; }
+  #words .gold { color: var(--accent); }
+
+  /* Cover */
+  #cover-wrap { left: 230px; top: 160px; height: 760px; perspective: 1800px; }
+  #cover-glow {
+    position: absolute; left: 50%; top: 50%; width: 1100px; height: 1100px; margin: -550px 0 0 -550px;
+    background: radial-gradient(circle, rgba(255, 221, 87, 0.20) 0%, rgba(255, 221, 87, 0.06) 35%, rgba(255, 221, 87, 0) 62%);
+  }
+  #cover {
+    position: relative; display: block; height: 760px; width: auto; border-radius: 3px;
+    box-shadow: 0 40px 90px 10px var(--deep-blue), 0 12px 30px var(--deep-blue);
+    transform-origin: 50% 50%;
+  }
+  #cover-sheen { position: absolute; inset: 0; border-radius: 3px; pointer-events: none;
+    background: linear-gradient(105deg, rgba(244, 248, 255, 0) 30%, rgba(244, 248, 255, 0.16) 48%, rgba(244, 248, 255, 0) 62%);
+    background-size: 300% 100%; }
+
+  /* Right column */
+  .col { left: 880px; width: 900px; }
+  #eyebrow { top: 318px; font-size: 28px; letter-spacing: 0.3em; text-transform: uppercase; color: var(--accent-soft); }
+  #title { top: 362px; font-size: 92px; }
+  #subtitle { top: 486px; font-size: 34px; letter-spacing: 0.2em; color: var(--luminous-white); }
+  #rule1 { top: 566px; height: 3px; background: var(--accent); }
+  #author { top: 598px; font-size: 34px; }
+
+  #quote { top: 286px; font-family: var(--font-serif); font-weight: 500; font-size: 58px; line-height: 1.22; color: var(--warm-ivory); max-width: 860px; }
+  #attrib { top: 548px; font-size: 28px; letter-spacing: 0.08em; color: var(--accent-soft); }
+  #rule2 { top: 636px; height: 3px; background: var(--accent); }
+  #cta { top: 668px; font-size: 38px; letter-spacing: 0.16em; color: var(--accent); }
+  #search { top: 730px; font-size: 25px; letter-spacing: 0.12em; color: var(--luminous-white); }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="deep" class="layer"></div>
+  <div id="bloom" class="layer"></div>
+
+  <div id="question" class="abs headline">
+    <div class="mask"><span class="rise">What have I believed about myself</span></div>
+    <div class="mask"><span class="rise">that You never said?</span></div>
+  </div>
+
+  <div id="words" class="abs headline">
+    <div class="mask"><span class="rise">Confession.</span></div>
+    <div class="mask"><span class="rise">Repentance.</span></div>
+    <div class="mask"><span class="rise gold">Transformation.</span></div>
+  </div>
+
+  <div id="cover-wrap" class="abs">
+    <div id="cover-glow"></div>
+    <div id="cover-card" style="position:relative">
+      <img id="cover" alt="">
+      <div id="cover-sheen"></div>
+    </div>
+  </div>
+
+  <div id="eyebrow" class="abs col body">Discovering Your True Identity</div>
+  <div id="title" class="abs col headline">Be Made Whole</div>
+  <div id="subtitle" class="abs col body">30-DAY COMPANION DEVOTIONAL</div>
+  <div id="rule1" class="abs col"></div>
+  <div id="author" class="abs col author">Clyde Lewis</div>
+
+  <div id="quote" class="abs col">“Your past may be part of your story, but it does not get to write&nbsp;the&nbsp;ending.”</div>
+  <div id="attrib" class="abs col body">— Clyde Lewis</div>
+  <div id="rule2" class="abs col"></div>
+  <div id="cta" class="abs col headline">Get Your Copy on Amazon</div>
+  <div id="search" class="abs col body">SEARCH: CLYDE LEWIS BE MADE WHOLE 30-DAY DEVOTIONAL</div>
+</div>
+<script>
+  window.DURATION = 15;
+  window.SIZE = [1920, 1080];
+
+  // The real book cover. Drop it into assets/ with one of these names.
+  const COVER_FILES = ["devotional-cover.png", "devotional-cover.jpg", "devotional-cover.jpeg", "devotional-cover.webp"];
+  const coverImg = document.getElementById("cover");
+  let hasCover = false;
+  window.READY = (async () => {
+    for (const f of COVER_FILES) {
+      coverImg.src = "../assets/" + f;
+      try { await coverImg.decode(); hasCover = true; return; } catch (e) { /* try next */ }
+    }
+    coverImg.removeAttribute("src");
+  })();
+
+  const $ = s => document.querySelector(s);
+  const qLines = [...document.querySelectorAll("#question .rise")];
+  const words = [...document.querySelectorAll("#words .rise")];
+
+  const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+  const easeOut = x => 1 - Math.pow(1 - clamp(x), 5);
+  const easeIn = x => { x = clamp(x); return x * x * x; };
+  const easeInOut = x => { x = clamp(x); return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2; };
+  const inP = (t, s, d) => easeOut((t - s) / d);
+  const outP = (t, s, d) => easeIn((t - s) / d);
+  const show = (el, o, dy = 0) => { el.style.opacity = o; el.style.transform = `translateY(${dy}px)`; };
+  const growRule = (el, t, s, w) => { el.style.width = w * inP(t, s, 0.8) + "px"; };
+
+  window.render = function (t) {
+    $("#deep").style.opacity = 1 - inP(t, 0, 1.0);
+
+    // Opening question (0.0-3.4): light blooms, lines rise in, then dissolve upward.
+    $("#bloom").style.opacity = easeInOut(t / 2.4) * (1 - outP(t, 3.0, 0.5));
+    qLines.forEach((l, i) => { l.style.transform = `translateY(${(1 - inP(t, 0.3 + i * 0.4, 1.2)) * 110}%)`; });
+    const qo = outP(t, 2.95, 0.45);
+    show($("#question"), 1 - qo, -36 * qo);
+
+    // Three words (3.4-6.4), one at a time.
+    words.forEach((w, i) => { w.style.transform = `translateY(${(1 - inP(t, 3.45 + i * 0.8, 0.9)) * 110}%)`; });
+    const wo = outP(t, 5.95, 0.45);
+    show($("#words"), 1 - wo, -36 * wo);
+
+    // Cover reveal (from 6.4): rises, turns gently toward the viewer, floats, softly lit.
+    const pc = inP(t, 6.4, 1.6);
+    const floatY = Math.sin((t - 6.4) * Math.PI * 2 / 5) * 7 * pc;
+    const glide = -24 * easeInOut((t - 9.4) / 1.4);
+    const rot = -9 * (1 - pc) - 4 + 2 * easeInOut((t - 9.4) / 2);
+    const card = $("#cover-card");
+    card.style.opacity = hasCover ? pc : 0;
+    card.style.transform = `translate(${glide}px, ${(1 - pc) * 70 + floatY}px) rotateY(${rot}deg) scale(${0.95 + 0.05 * pc})`;
+    $("#cover-glow").style.opacity = hasCover ? inP(t, 6.7, 2.0) * (0.85 + 0.15 * Math.sin(t * 1.3)) : 0;
+    // One slow sheen of light across the cover as it settles.
+    $("#cover-sheen").style.backgroundPosition = `${100 - 100 * easeInOut((t - 7.6) / 1.8)}% 0`;
+    $("#cover-sheen").style.opacity = hasCover ? 1 : 0;
+
+    // Title group beside the cover (6.9-9.9).
+    const go = outP(t, 9.45, 0.45);
+    show($("#eyebrow"), inP(t, 6.9, 0.9) * (1 - go), (1 - inP(t, 6.9, 0.9)) * 14 - 20 * go);
+    show($("#title"), inP(t, 7.1, 1.0) * (1 - go), (1 - inP(t, 7.1, 1.0)) * 30 - 20 * go);
+    show($("#subtitle"), inP(t, 7.5, 0.9) * (1 - go), (1 - inP(t, 7.5, 0.9)) * 14 - 20 * go);
+    growRule($("#rule1"), t, 7.7, 96); $("#rule1").style.opacity = 1 - go;
+    const pa = inP(t, 7.8, 1.0);
+    $("#author").style.opacity = pa * (1 - go);
+    $("#author").style.letterSpacing = (0.48 - 0.16 * pa) + "em";
+
+    // Closing quote and call to action (9.9-15.0), held for reading.
+    show($("#quote"), inP(t, 9.9, 1.1), (1 - inP(t, 9.9, 1.1)) * 22);
+    show($("#attrib"), inP(t, 10.5, 0.9), (1 - inP(t, 10.5, 0.9)) * 12);
+    growRule($("#rule2"), t, 11.0, 96);
+    show($("#cta"), inP(t, 11.2, 0.9), (1 - inP(t, 11.2, 0.9)) * 16);
+    show($("#search"), inP(t, 11.5, 0.9), (1 - inP(t, 11.5, 0.9)) * 12);
+  };
+</script>
+</body>
+</html>

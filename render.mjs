@@ -63,6 +63,8 @@ try {
     content: "*,*::before,*::after{animation:none!important;transition:none!important;caret-color:transparent!important}",
   });
   await page.evaluate(() => document.fonts.ready);
+  // Optional: a video can set window.READY to a promise (e.g. images loading) to wait for.
+  await page.evaluate(() => window.READY);
 
   const { duration, hasRender } = await page.evaluate(() => ({
     duration: window.DURATION,
