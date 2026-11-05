@@ -5,7 +5,7 @@
    Do not substitute colors or fonts without authorization.
    ========================================================================== */
 
-/* Fonts: Lato (Google Fonts, SIL Open Font License, see fonts/OFL.txt).
+/* Fonts: Lato (Google Fonts, SIL Open Font License, see fonts/OFL-Lato.txt).
    Loaded from the local fonts/ folder so every render works offline. */
 @font-face {
   font-family: "Lato";
@@ -21,23 +21,43 @@
   font-style: normal;
   font-display: block;
 }
+/* Cormorant Garamond (variable, weights 300-700), SIL OFL, see fonts/OFL-CormorantGaramond.txt */
+@font-face {
+  font-family: "Cormorant Garamond";
+  src: url("fonts/CormorantGaramond-Variable.ttf") format("truetype");
+  font-weight: 300 700;
+  font-style: normal;
+  font-display: block;
+}
 
 :root {
-  /* Brand colors (exact values) */
-  --royal-blue:  #123F70;  /* Background */
-  --warm-gold:   #FFDF62;  /* Accent */
-  --soft-ivory:  #F8F6EF;  /* Text */
-  --muted-blue:  #A9B9C9;  /* Muted */
+  /* ---- Approved palette (primary) ---- */
+  --deep-blue:      #08294E;
+  --royal-blue:     #103D70;
+  --mid-blue:       #225784;
+  --signature-gold: #FFDD57;
+  --soft-gold:      #F5E17B;
+  --warm-ivory:     #FFF9E7;
+
+  /* ---- Legacy palette (first brand check; kept so older videos render) ---- */
+  --legacy-royal-blue: #123F70;
+  --warm-gold:         #FFDF62;
+  --soft-ivory:        #F8F6EF;
+  --muted-blue:        #A9B9C9;
 
   /* Roles */
-  --bg:     var(--royal-blue);
-  --accent: var(--warm-gold);
-  --text:   var(--soft-ivory);
-  --muted:  var(--muted-blue);
+  --bg:      var(--royal-blue);
+  --bg-deep: var(--deep-blue);
+  --surface: var(--mid-blue);
+  --accent:  var(--signature-gold);
+  --accent-soft: var(--soft-gold);
+  --text:    var(--warm-ivory);
+  --muted:   var(--muted-blue);
 
   /* Typography */
   --font-headline: "Lato", "Helvetica Neue", Arial, sans-serif;
   --font-body:     "Lato", "Helvetica Neue", Arial, sans-serif;
+  --font-serif:    "Cormorant Garamond", Garamond, Georgia, serif; /* editorial accents only */
   --weight-headline: 900;
   --weight-body:     400;
   --font-display: var(--font-headline); /* alias used by older videos */
@@ -82,6 +102,11 @@ html, body {
   letter-spacing: var(--label-tracking);
   text-transform: uppercase;
   color: var(--muted);
+}
+.serif {
+  font-family: var(--font-serif);
+  font-weight: 500;
+  color: var(--accent-soft);
 }
 .author {
   font-family: var(--font-headline);

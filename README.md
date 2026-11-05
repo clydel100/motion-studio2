@@ -35,6 +35,6 @@ Needs Node 18+, ffmpeg, and Playwright with Chromium (`npm install && npx playwr
 | `--soft-ivory` / `--text` | Text | `#F8F6EF` |
 | `--muted-blue` / `--muted` | Muted | `#A9B9C9` |
 
-Fonts: Lato 900 for headlines (`--font-headline`, `.headline`) and Lato 400 for body (`--font-body`, `.body`), loaded from `fonts/` so renders work offline. Lato is licensed under the SIL Open Font License (`fonts/OFL.txt`). Helper classes: `.headline`, `.body`, `.label`, `.author`.
+Fonts: Lato 900 for headlines (`--font-headline`, `.headline`) and Lato 400 for body (`--font-body`, `.body`), loaded from `fonts/` so renders work offline. Lato is licensed under the SIL Open Font License (`fonts/OFL-Lato.txt`). Helper classes: `.headline`, `.body`, `.label`, `.author`.
 
 `videos/brand-check.html` is the reference layout.

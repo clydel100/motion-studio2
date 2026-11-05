@@ -1,0 +1,192 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../brand.css">
+<style>
+  #stage {
+    position: relative; width: 1920px; height: 1080px; overflow: hidden;
+    /* Soft cinematic depth: Royal Blue center falling off to Deep Blue edges. */
+    background: radial-gradient(ellipse 75% 85% at 50% 46%, var(--royal-blue) 0%, var(--royal-blue) 35%, var(--deep-blue) 100%);
+  }
+  .abs { position: absolute; }
+  .layer { position: absolute; inset: 0; }
+  #deep { background: var(--deep-blue); }
+
+  /* ---- Scene 1: title ---- */
+  #title { left: 0; right: 0; top: 330px; text-align: center; font-size: 176px; line-height: 1; }
+  #title .line { display: flex; justify-content: center; gap: 0.26em; }
+  #title .mask { overflow: hidden; padding: 0.05em 0 0.07em; }
+  #title .word { display: inline-block; }
+  #title .gold { color: var(--accent); }
+  #title-rule { left: 50%; top: 760px; height: 4px; background: var(--accent); }
+
+  /* ---- Scenes 2-4: steps ---- */
+  .step { position: absolute; inset: 0; }
+  .num {
+    position: absolute; left: 110px; width: 380px; top: 290px; text-align: right;
+    font-family: var(--font-serif); font-weight: 500; font-size: 440px; line-height: 1;
+    font-variant-numeric: lining-nums; color: var(--accent-soft);
+  }
+  .divider { position: absolute; left: 560px; top: 350px; width: 3px; height: 340px; background: var(--accent); transform-origin: top; }
+  .text { position: absolute; left: 640px; top: 430px; }
+  .step-head { font-size: 112px; white-space: nowrap; }
+  .step-line { margin-top: 34px; font-size: 46px; color: var(--text); white-space: nowrap; }
+
+  #progress { left: 50%; top: 948px; width: 408px; margin-left: -204px; display: flex; gap: 16px; }
+  .seg { flex: 1; height: 4px; background: var(--mid-blue); border-radius: 2px; overflow: hidden; }
+  .seg i { display: block; height: 100%; width: 0; background: var(--accent); }
+
+  /* ---- Scene 5: end card ---- */
+  #end-row { left: 0; right: 0; top: 404px; display: flex; justify-content: center; align-items: center; gap: 56px; }
+  #end-title { font-size: 104px; }
+  #end-title .mask { overflow: hidden; padding: 0.06em 0 0.08em; }
+  #end-title .word { display: inline-block; }
+  #end-div { width: 3px; height: 112px; background: var(--accent); }
+  #end-author { font-size: 44px; }
+  #end-rule { left: 50%; top: 612px; height: 2px; background: var(--accent-soft); }
+  #cta {
+    left: 0; right: 0; top: 650px; text-align: center; font-size: 32px;
+    letter-spacing: var(--label-tracking); text-transform: uppercase; color: var(--accent-soft);
+  }
+  #link { left: 0; right: 0; top: 712px; text-align: center; font-size: 28px; letter-spacing: 0.06em; color: var(--text); }
+</style>
+</head>
+<body>
+<div id="stage">
+  <!-- Deep Blue wash behind all content: fade-in and end-card settle -->
+  <div id="deep" class="layer"></div>
+
+  <!-- Scene 1 -->
+  <div id="title" class="abs headline">
+    <div class="line">
+      <div class="mask"><span class="word">From</span></div>
+      <div class="mask"><span class="word">Victim</span></div>
+    </div>
+    <div class="line">
+      <div class="mask"><span class="word">To</span></div>
+      <div class="mask"><span class="word gold">Victor</span></div>
+    </div>
+  </div>
+  <div id="title-rule" class="abs"></div>
+
+  <!-- Scenes 2-4 are built from STEPS below -->
+  <div id="steps"></div>
+  <div id="progress" class="abs"><div class="seg"><i></i></div><div class="seg"><i></i></div><div class="seg"><i></i></div></div>
+
+  <!-- Scene 5 -->
+  <div id="end-row" class="abs">
+    <div id="end-title" class="headline">
+      <div class="mask"><span class="word">Be Made Whole</span></div>
+    </div>
+    <div id="end-div"></div>
+    <div id="end-author" class="author">Clyde Lewis</div>
+  </div>
+  <div id="end-rule" class="abs"></div>
+  <div id="cta" class="abs body">Get Your Copy on Amazon</div>
+  <div id="link" class="abs body">a.co/d/0helZuRL</div>
+
+</div>
+<script>
+  window.DURATION = 15;
+  window.SIZE = [1920, 1080];
+
+  const STEPS = [
+    { n: "1", head: "Confession",     line: "Confession is seeing and admitting what is real." },
+    { n: "2", head: "Repentance",     line: "Repentance means changing how we think." },
+    { n: "3", head: "Transformation", line: "From transformation comes freedom." },
+  ];
+  const STEP_START = 3.0, STEP_EVERY = 3.0, STEP_LEN = 3.4, END_START = 12.0;
+
+  const $ = s => document.querySelector(s);
+  const stepsEl = $("#steps");
+  const steps = STEPS.map(s => {
+    const el = document.createElement("div");
+    el.className = "step";
+    el.innerHTML = `
+      <div class="num">${s.n}</div>
+      <div class="divider"></div>
+      <div class="text">
+        <div class="step-head headline">${s.head}</div>
+        <div class="step-line body">${s.line}</div>
+      </div>`;
+    stepsEl.appendChild(el);
+    return {
+      root: el, num: el.querySelector(".num"), div: el.querySelector(".divider"),
+      head: el.querySelector(".step-head"), line: el.querySelector(".step-line"),
+    };
+  });
+  const titleWords = [...document.querySelectorAll("#title .word")];
+  const segs = [...document.querySelectorAll(".seg i")];
+
+  const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+  const easeOut = x => 1 - Math.pow(1 - clamp(x), 5);                  // quint out: entrances
+  const easeIn = x => { x = clamp(x); return x * x * x; };              // cubic in: exits
+  const easeInOut = x => { x = clamp(x); return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2; };
+  const inP = (t, s, d) => easeOut((t - s) / d);
+  const outP = (t, s, d) => easeIn((t - s) / d);
+  const set = (el, o, tf) => { el.style.opacity = o; el.style.transform = tf; };
+
+  window.render = function (t) {
+    // Background wash: fade up from Deep Blue, then settle toward Deep Blue for the end card.
+    $("#deep").style.opacity = (1 - inP(t, 0, 0.9)) + 0.5 * easeInOut((t - END_START) / 1.2);
+
+    // ---- Scene 1: title (0.0-3.4) ----
+    const titleOut = outP(t, 3.0, 0.4);
+    titleWords.forEach((w, i) => {
+      const p = inP(t, 0.4 + i * 0.22, 1.1);
+      w.style.transform = `translateY(${(1 - p) * 108}%)`;
+    });
+    set($("#title"), 1 - titleOut, `translateY(${-50 * titleOut}px)`);
+    const rw = 140 * inP(t, 1.8, 0.8);
+    const rule = $("#title-rule");
+    rule.style.width = rw + "px";
+    rule.style.marginLeft = -rw / 2 + "px";
+    set(rule, 1 - titleOut, `translateY(${-50 * titleOut}px)`);
+
+    // ---- Scenes 2-4: steps ----
+    steps.forEach((s, i) => {
+      const S = STEP_START + i * STEP_EVERY, E = S + STEP_LEN;
+      const visible = t >= S - 0.01 && t <= E + 0.01;
+      s.root.style.visibility = visible ? "visible" : "hidden";
+      if (!visible) return;
+      const out = outP(t, E - 0.4, 0.4);
+      s.root.style.opacity = 1 - out;
+      s.root.style.transform = `translateX(${-90 * out}px)`;
+
+      const pn = inP(t, S, 1.0);
+      set(s.num, pn, `translateY(${(1 - pn) * 70}px)`);
+      s.div.style.transform = `scaleY(${inP(t, S + 0.1, 0.9)})`;
+      const ph = inP(t, S + 0.3, 1.0);
+      set(s.head, ph, `translateX(${(1 - ph) * 70}px)`);
+      const pl = inP(t, S + 0.6, 0.9);
+      set(s.line, pl, `translateY(${(1 - pl) * 16}px)`);
+    });
+
+    // Progress bar: appears with step 1, each segment fills during its step, leaves with the end card.
+    $("#progress").style.opacity = inP(t, STEP_START, 0.8) * (1 - outP(t, END_START, 0.4));
+    segs.forEach((seg, i) => {
+      const S = STEP_START + i * STEP_EVERY;
+      seg.style.width = 100 * easeInOut((t - S) / STEP_EVERY) + "%";
+    });
+
+    // ---- Scene 5: end card (12.0-15.0) ----
+    const pt = inP(t, END_START, 1.0);
+    $("#end-title .word").style.transform = `translateY(${(1 - pt) * 108}%)`;
+    const pd = inP(t, END_START + 0.4, 0.8);
+    set($("#end-div"), pd, `scaleY(${pd})`);
+    const pa = inP(t, END_START + 0.5, 1.0);
+    $("#end-author").style.opacity = pa;
+    $("#end-author").style.letterSpacing = (0.5 - 0.18 * pa) + "em";
+
+    const er = 96 * inP(t, END_START + 1.0, 0.7);
+    $("#end-rule").style.width = er + "px";
+    $("#end-rule").style.marginLeft = -er / 2 + "px";
+    const pc = inP(t, END_START + 1.1, 0.9);
+    set($("#cta"), pc, `translateY(${(1 - pc) * 16}px)`);
+    const pk = inP(t, END_START + 1.3, 0.9);
+    set($("#link"), pk, `translateY(${(1 - pk) * 12}px)`);
+  };
+</script>
+</body>
+</html>
