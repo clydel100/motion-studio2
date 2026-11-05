@@ -12,6 +12,10 @@ window.SIZE = [1920, 1080];     // [width, height] in pixels
 window.render = (t) => { ... }; // draw the exact frame at time t (seconds)
 ```
 
+Optional: `window.AUDIO = "../audio/track.wav";` adds a soundtrack to the MP4, and `window.READY = promise` makes the renderer wait (e.g. for images) before capturing.
+
+Music: `python3 scripts/compose-devotional-score.py` writes `audio/devotional-score.wav`, an original score composed in code (no samples, no licensing issues).
+
 No CSS animations, transitions, timers or `requestAnimationFrame` loops: all motion comes from `render(t)`. See `videos/hello.html`.
 
 ## Render

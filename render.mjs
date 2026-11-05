@@ -11,7 +11,7 @@
 
 import { createRequire } from "node:module";
 import { spawn } from "node:child_process";
-import { mkdirSync } from "node:fs";
+import { mkdirSync, existsSync } from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 
@@ -66,10 +66,13 @@ try {
   // Optional: a video can set window.READY to a promise (e.g. images loading) to wait for.
   await page.evaluate(() => window.READY);
 
-  const { duration, hasRender } = await page.evaluate(() => ({
+  const { duration, hasRender, audio } = await page.evaluate(() => ({
     duration: window.DURATION,
     hasRender: typeof window.render === "function",
+    audio: window.AUDIO ?? null, // optional music/soundtrack file, relative to the video HTML
   }));
+  const audioPath = audio ? path.resolve(path.dirname(inputPath), audio) : null;
+  if (audioPath && !existsSync(audioPath)) throw new Error(`window.AUDIO file not found: ${audioPath}`);
   if (!hasRender) throw new Error("The video must define window.render(t).");
   if (!(duration > 0)) throw new Error("The video must set window.DURATION to a number of seconds.");
 
@@ -107,9 +110,11 @@ try {
     const ff = spawn("ffmpeg", [
       "-y", "-loglevel", "error",
       "-f", "image2pipe", "-framerate", String(opts.fps), "-c:v", "png", "-i", "-",
+      ...(audioPath ? ["-i", audioPath, "-map", "0:v", "-map", "1:a", "-c:a", "aac", "-b:a", "192k", "-ar", "48000"] : []),
       "-vf", "pad=ceil(iw/2)*2:ceil(ih/2)*2",
       "-c:v", "libx264", "-preset", "medium", "-crf", "18",
       "-pix_fmt", "yuv420p", "-r", String(opts.fps), "-movflags", "+faststart",
+      "-t", String(duration),
       outFile,
     ], { stdio: ["pipe", "inherit", "inherit"] });
     const done = new Promise((resolve, reject) => {
@@ -126,7 +131,7 @@ try {
     }
     ff.stdin.end();
     await done;
-    console.log(`\nWrote ${path.relative(process.cwd(), outFile)} (${width}x${height}, ${opts.fps} fps, ${duration}s)`);
+    console.log(`\nWrote ${path.relative(process.cwd(), outFile)} (${width}x${height}, ${opts.fps} fps, ${duration}s${audioPath ? ", with audio" : ""})`);
   }
 } finally {
   await browser.close();
