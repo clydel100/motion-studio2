@@ -1,0 +1,695 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../brand.css">
+<style>
+  #cv { display: block; }
+</style>
+</head>
+<body>
+<canvas id="cv"></canvas>
+<script>
+/* ==========================================================================
+   SHOWREEL — a 15-second motion design reel, written entirely as code.
+   Every frame is a pure function of t. No keyframes, no timeline, no assets.
+
+   120 BPM, one beat = 0.5 s, every cut lands on the beat:
+     0.00  01 Ignition      dot, crosshair, burst, title
+     2.00  02 Kinetic type  TYPE. SHAPE. SPACE. TIME.  (one technique per beat)
+     4.00  03 Geometry      a breathing shape grid, then a zoom through one cell
+     6.00  04 3D            2,600 points: sphere -> torus -> cube
+     8.00  05 Particles     the same points fly into a word, then explode
+    10.00  06 Data          counters, charts, skills
+    11.85  07 Finale        title card and the closing line
+   Real motion blur: fast moments are rendered several times across a
+   shutter interval and averaged.
+   ========================================================================== */
+window.DURATION = 15;
+window.SIZE = [1920, 1080];
+window.AUDIO = "../audio/showreel-score.wav";
+
+const W = 1920, H = 1080, CX = W / 2, CY = H / 2, FPS = 30;
+const DPR = window.devicePixelRatio || 1;
+
+// ---------- Palette (read from brand.css so the tokens stay the source of truth) ----------
+const css = getComputedStyle(document.documentElement);
+const tok = (n) => css.getPropertyValue(n).trim();
+const C = {
+  deep: tok("--deep-blue"), royal: tok("--royal-blue"), mid: tok("--mid-blue"),
+  gold: tok("--signature-gold"), soft: tok("--soft-gold"),
+  ivory: tok("--warm-ivory"), white: tok("--luminous-white"), muted: tok("--muted-blue"),
+};
+const hex = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+const RGB = Object.fromEntries(Object.entries(C).map(([k, v]) => [k, hex(v)]));
+const rgba = (name, a = 1) => { const [r, g, b] = RGB[name]; return `rgba(${r},${g},${b},${a})`; };
+const mixRGB = (a, b, t) => { const A = RGB[a], B = RGB[b]; return [0, 1, 2].map((i) => Math.round(A[i] + (B[i] - A[i]) * t)); };
+const mixStr = (a, b, t, al = 1) => { const [r, g, bb] = mixRGB(a, b, t); return `rgba(${r},${g},${bb},${al})`; };
+
+// ---------- Math ----------
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const lerp = (a, b, t) => a + (b - a) * t;
+const inv = (a, b, x) => clamp((x - a) / (b - a));
+const eOut3 = (x) => 1 - Math.pow(1 - clamp(x), 3);
+const eIn3 = (x) => Math.pow(clamp(x), 3);
+const eInOut3 = (x) => { x = clamp(x); return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2; };
+const eOutExpo = (x) => { x = clamp(x); return x === 1 ? 1 : 1 - Math.pow(2, -10 * x); };
+const eInExpo = (x) => { x = clamp(x); return x === 0 ? 0 : Math.pow(2, 10 * x - 10); };
+const eOutBack = (x, s = 1.9) => { x = clamp(x); const c = s + 1; return 1 + c * Math.pow(x - 1, 3) + s * Math.pow(x - 1, 2); };
+// Damped spring from 0 to 1 (overshoots, settles). x is normalized progress.
+const spring = (x, f = 1.6, d = 6) => (x <= 0 ? 0 : x >= 1.6 ? 1 : 1 - Math.exp(-d * x) * Math.cos(2 * Math.PI * f * x));
+const TAU = Math.PI * 2;
+
+// Seeded random: identical renders every time.
+function mulberry32(a) { return function () { a |= 0; a = (a + 0x6d2b79f5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+const rng = mulberry32(20261125);
+const NOISE = Array.from({ length: 512 }, () => rng());
+const noise1 = (x) => { const i = Math.floor(x), f = x - i; const a = NOISE[i & 511], b = NOISE[(i + 1) & 511]; const s = (1 - Math.cos(f * Math.PI)) / 2; return a + (b - a) * s; };
+
+// ---------- Canvases ----------
+function makeCanvas() { const c = document.createElement("canvas"); c.width = W * DPR; c.height = H * DPR; return [c, c.getContext("2d")]; }
+const cv = document.getElementById("cv");
+cv.width = W * DPR; cv.height = H * DPR; cv.style.width = W + "px"; cv.style.height = H + "px";
+const ctx = cv.getContext("2d");
+const [sceneCv, sg] = makeCanvas();
+
+const LATO = (w, s) => `${w} ${s}px Lato`;
+const SERIF = (w, s) => `${w} ${s}px 'Cormorant Garamond'`;
+
+// ---------- Drawing helpers ----------
+function bg(g, inner, outer) {
+  const gr = g.createRadialGradient(CX, CY * 0.9, 0, CX, CY, 1150);
+  gr.addColorStop(0, rgba(inner)); gr.addColorStop(1, rgba(outer));
+  g.fillStyle = gr; g.fillRect(-200, -200, W + 400, H + 400);
+}
+function flat(g, name) { g.fillStyle = rgba(name); g.fillRect(-200, -200, W + 400, H + 400); }
+function grid(g, alpha, color, step, ox = 0, oy = 0) {
+  if (alpha <= 0) return;
+  g.strokeStyle = rgba(color, alpha); g.lineWidth = 1; g.beginPath();
+  for (let x = CX % step + ox % step - step; x < W + step; x += step) { g.moveTo(x, -10); g.lineTo(x, H + 10); }
+  for (let y = CY % step + oy % step - step; y < H + step; y += step) { g.moveTo(-10, y); g.lineTo(W + 10, y); }
+  g.stroke();
+}
+function line(g, x1, y1, x2, y2) { g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke(); }
+// Per-letter layout that keeps the font's kerning (prefix widths).
+function layout(g, word, font, spacing = 0) {
+  g.font = font;
+  const xs = [], ws = [];
+  for (let i = 0; i < word.length; i++) {
+    xs.push(g.measureText(word.slice(0, i)).width + spacing * i);
+    ws.push(g.measureText(word[i]).width);
+  }
+  const total = g.measureText(word).width + spacing * (word.length - 1);
+  return { xs, ws, total, centers: xs.map((x, i) => x + ws[i] / 2 - total / 2) };
+}
+function spaced(g, text, x, y, tracking, align = "center") {
+  // Draw text with letter-spacing (in px), aligned around x.
+  g.letterSpacing = tracking + "px";
+  const w = g.measureText(text).width - tracking;
+  g.textAlign = "left";
+  const sx = align === "center" ? x - w / 2 : align === "right" ? x - w : x;
+  g.fillText(text, sx, y);
+  g.letterSpacing = "0px";
+  return w;
+}
+
+// ---------- Global camera: shake + flash on the hits ----------
+const HITS = [
+  { t: 1.0, a: 22, f: 0.55 }, { t: 2.0, a: 10, f: 0.25 }, { t: 2.5, a: 8 }, { t: 3.0, a: 8 }, { t: 3.5, a: 10 },
+  { t: 4.0, a: 6 }, { t: 5.0, a: 7 }, { t: 6.0, a: 14, f: 0.35 }, { t: 7.0, a: 6 }, { t: 7.5, a: 6 },
+  { t: 8.65, a: 12, f: 0.2 }, { t: 9.45, a: 26, f: 0.6 }, { t: 10.0, a: 6 }, { t: 11.85, a: 16, f: 0.45 },
+];
+function shake(t) {
+  let x = 0, y = 0, r = 0;
+  for (const h of HITS) {
+    const d = t - h.t; if (d < 0 || d > 0.6) continue;
+    const k = h.a * Math.exp(-d * 9);
+    x += k * (noise1(d * 40 + h.t * 17) - 0.5) * 2;
+    y += k * (noise1(d * 40 + h.t * 31 + 100) - 0.5) * 2;
+    r += k * 0.0009 * (noise1(d * 30 + h.t * 7 + 200) - 0.5);
+  }
+  return { x, y, r };
+}
+function flash(t) {
+  let f = 0;
+  for (const h of HITS) { if (!h.f) continue; const d = t - h.t; if (d >= 0) f += h.f * Math.exp(-d * 12); }
+  return Math.min(0.8, f);
+}
+
+// ============================ 01 IGNITION (0 - 2) ============================
+const BURST = Array.from({ length: 36 }, (_, i) => ({ a: (i / 36) * TAU + (rng() - 0.5) * 0.12, d: rng() * 0.08, w: 2 + rng() * 5, len: 0.6 + rng() * 0.6, gold: rng() > 0.35 }));
+function scene1(g, t) {
+  bg(g, "royal", "deep");
+  grid(g, 0.06 * eOut3(inv(0, 0.8, t)) * (1 - 0.5 * inv(1, 1.6, t)), "ivory", 120);
+
+  // Crosshair with ruler ticks
+  const pL = eOutExpo(inv(0.22, 0.9, t)), fadeX = 1 - 0.75 * inv(1.0, 1.4, t);
+  if (pL > 0) {
+    g.strokeStyle = rgba("gold", 0.6 * fadeX); g.lineWidth = 2;
+    const gap = 46, Lx = (W / 2) * pL, Ly = (H / 2) * pL;
+    line(g, CX - gap, CY, CX - gap - Lx, CY); line(g, CX + gap, CY, CX + gap + Lx, CY);
+    line(g, CX, CY - gap, CX, CY - gap - Ly); line(g, CX, CY + gap, CX, CY + gap + Ly);
+    g.strokeStyle = rgba("ivory", 0.35 * fadeX); g.lineWidth = 1.5;
+    for (let k = 1; k < 18; k++) {
+      const d = gap + k * 52; if (d > gap + Lx) break;
+      const h = k % 5 === 0 ? 16 : 7;
+      line(g, CX - d, CY - h, CX - d, CY + h); line(g, CX + d, CY - h, CX + d, CY + h);
+      if (d < gap + Ly) { line(g, CX - h, CY - d, CX + h, CY - d); line(g, CX - h, CY + d, CX + h, CY + d); }
+    }
+  }
+  // Ring draws itself, then becomes the shockwave
+  const pA = eInOut3(inv(0.38, 0.98, t));
+  if (t < 1.0 && pA > 0) {
+    g.strokeStyle = rgba("gold"); g.lineWidth = 3; g.lineCap = "round";
+    g.beginPath(); g.arc(CX, CY, 150, -Math.PI / 2, -Math.PI / 2 + TAU * pA); g.stroke();
+    // orbiting marker on the drawing tip
+    const a = -Math.PI / 2 + TAU * pA;
+    g.fillStyle = rgba("ivory"); g.beginPath(); g.arc(CX + Math.cos(a) * 150, CY + Math.sin(a) * 150, 6, 0, TAU); g.fill();
+  }
+  // Core dot
+  let dotR = 11 * spring(inv(0.12, 0.7, t) * 1.2);
+  if (t >= 0.85) dotR *= 1 - 0.6 * eIn3(inv(0.85, 1.0, t)); // inhale before the hit
+  if (t >= 1.0) dotR = 70 * (1 - eOut3(inv(1.0, 1.3, t)));
+  if (dotR > 0.2) {
+    const glow = g.createRadialGradient(CX, CY, 0, CX, CY, dotR * 6);
+    glow.addColorStop(0, rgba("gold", 0.45)); glow.addColorStop(1, rgba("gold", 0));
+    g.fillStyle = glow; g.fillRect(CX - dotR * 6, CY - dotR * 6, dotR * 12, dotR * 12);
+    g.fillStyle = rgba("gold"); g.beginPath(); g.arc(CX, CY, dotR, 0, TAU); g.fill();
+  }
+  if (t >= 1.0) {
+    // Speed lines
+    g.lineCap = "round";
+    for (const b of BURST) {
+      const head = 150 + 1100 * b.len * eOutExpo(inv(1.0 + b.d, 1.55 + b.d, t));
+      const tail = 150 + 1100 * b.len * eOut3(inv(1.06 + b.d, 1.75 + b.d, t));
+      if (head - tail < 1) continue;
+      g.strokeStyle = rgba(b.gold ? "gold" : "ivory", 0.9); g.lineWidth = b.w;
+      line(g, CX + Math.cos(b.a) * tail, CY + Math.sin(b.a) * tail, CX + Math.cos(b.a) * head, CY + Math.sin(b.a) * head);
+    }
+    // Shockwave rings
+    for (let j = 0; j < 3; j++) {
+      const p = inv(1.0 + j * 0.06, 1.7 + j * 0.12, t); if (p <= 0 || p >= 1) continue;
+      g.strokeStyle = rgba(j === 1 ? "ivory" : "gold", 1 - p); g.lineWidth = 16 * (1 - p) + 1;
+      g.beginPath(); g.arc(CX, CY, 150 + 1000 * eOutExpo(p) * (1 - j * 0.18), 0, TAU); g.stroke();
+    }
+    // Title: letters converge from wide tracking
+    const word = "SHOWREEL", L = layout(g, word, LATO(900, 190), 18);
+    g.textBaseline = "middle"; g.textAlign = "center";
+    for (let i = 0; i < word.length; i++) {
+      const o = Math.abs(i - (word.length - 1) / 2);
+      const p = eOutExpo(inv(1.03 + o * 0.03, 1.5 + o * 0.03, t));
+      if (p <= 0) continue;
+      g.fillStyle = rgba("ivory", p);
+      g.fillText(word[i], CX + L.centers[i] * (1 + 0.9 * (1 - p)), CY + 6 + 40 * (1 - p));
+    }
+    g.font = LATO(900, 26); g.fillStyle = rgba("gold", eOut3(inv(1.2, 1.5, t)));
+    spaced(g, "MOTION DESIGN  ·  2026", CX, CY - 150, 11);
+    g.font = LATO(400, 22); g.fillStyle = rgba("muted", eOut3(inv(1.3, 1.6, t)));
+    spaced(g, "15 SECONDS   ·   450 FRAMES   ·   ZERO KEYFRAMES", CX, CY + 150, 8);
+  }
+  // Iris to gold (next scene's background)
+  const pI = eInExpo(inv(1.7, 2.0, t));
+  if (pI > 0) { g.fillStyle = rgba("gold"); g.beginPath(); g.arc(CX, CY, 1150 * pI, 0, TAU); g.fill(); }
+}
+
+// ============================ 02 KINETIC TYPE (2 - 4) ============================
+const WORDS = [
+  { w: "TYPE.", bg: "gold", fg: "deep" },
+  { w: "SHAPE.", bg: "deep", fg: "gold" },
+  { w: "SPACE.", bg: "ivory", fg: "deep" },
+  { w: "TIME.", bg: "royal", fg: "ivory" },
+];
+const WARP = Array.from({ length: 140 }, () => ({ a: rng() * TAU, o: rng(), w: 1 + rng() * 3 }));
+let TIME_CANVAS = null; // pre-rendered in READY (needs the font)
+function scene2(g, lt) {
+  const idx = Math.min(3, Math.floor(lt / 0.5)), u = lt - idx * 0.5, Wd = WORDS[idx];
+  flat(g, Wd.bg);
+  g.textBaseline = "middle"; g.textAlign = "center";
+  const F = LATO(900, 320), L = layout(g, Wd.w, F, 6);
+  g.font = F;
+
+  if (idx === 0) { // TYPE. — marquee texture + letters drop on springs
+    g.font = LATO(900, 200); g.strokeStyle = rgba("deep", 0.12); g.lineWidth = 2;
+    for (let r = -1; r < 6; r++) {
+      const dir = r % 2 ? 1 : -1, off = ((u * 900 * dir) % 1100) - 1100;
+      for (let k = 0; k < 4; k++) g.strokeText("TYPE TYPE", off + k * 1100 + 300, r * 210 + 80);
+    }
+    g.font = F;
+    for (let i = 0; i < Wd.w.length; i++) {
+      const p = spring(inv(i * 0.035, i * 0.035 + 0.38, u), 1.4, 5.5);
+      g.save(); g.translate(CX + L.centers[i], CY + 10 - 760 * (1 - p));
+      g.scale(1 - 0.12 * (1 - p), 1 + 0.35 * (1 - p)); g.fillStyle = rgba("deep"); g.fillText(Wd.w[i], 0, 0); g.restore();
+    }
+    const pb = eOutExpo(inv(0.12, 0.4, u));
+    g.fillStyle = rgba("deep"); g.fillRect(CX - L.total / 2, CY + 150, L.total * pb, 14);
+  } else if (idx === 1) { // SHAPE. — geometry orbiting + echo outlines + letters spin-scale in
+    const pr = eOutExpo(inv(0, 0.4, u));
+    g.lineWidth = 3; g.strokeStyle = rgba("ivory", 0.35);
+    g.beginPath(); g.arc(CX, CY, 420, -Math.PI / 2, -Math.PI / 2 + TAU * pr); g.stroke();
+    const shapes = [0, 1, 2];
+    shapes.forEach((s, k) => {
+      const a = u * 2.4 + k * (TAU / 3) - 0.9, x = CX + Math.cos(a) * 640, y = CY + Math.sin(a) * 330, sc = eOutBack(inv(0.04 + k * 0.05, 0.3 + k * 0.05, u));
+      g.save(); g.translate(x, y); g.rotate(u * 4 + k); g.scale(sc, sc);
+      g.strokeStyle = rgba(k === 1 ? "ivory" : "gold"); g.lineWidth = 6; g.beginPath();
+      if (s === 0) g.arc(0, 0, 46, 0, TAU);
+      else if (s === 1) g.rect(-42, -42, 84, 84);
+      else { g.moveTo(0, -54); g.lineTo(48, 30); g.lineTo(-48, 30); g.closePath(); }
+      g.stroke(); g.restore();
+    });
+    for (let e = 3; e >= 1; e--) {
+      const p = eOut3(inv(0.08 + e * 0.04, 0.4 + e * 0.04, u));
+      g.save(); g.translate(CX, CY); g.scale(1 + e * 0.09 * p, 1 + e * 0.09 * p);
+      g.strokeStyle = rgba("gold", 0.35 * p / e); g.lineWidth = 2; g.strokeText(Wd.w, 0, 10); g.restore();
+    }
+    for (let i = 0; i < Wd.w.length; i++) {
+      const p = eOutBack(inv(i * 0.03, i * 0.03 + 0.3, u), 2.2);
+      if (p <= 0) continue;
+      g.save(); g.translate(CX + L.centers[i], CY + 10); g.rotate((1 - p) * -1.1); g.scale(p, p);
+      g.fillStyle = rgba("gold"); g.fillText(Wd.w[i], 0, 0); g.restore();
+    }
+  } else if (idx === 2) { // SPACE. — warp streaks + letters arrive from depth
+    g.lineCap = "round";
+    for (const s of WARP) {
+      const d = (s.o + u * 1.8) % 1, r1 = 80 + d * d * 1500, r2 = r1 + 20 + d * 260;
+      g.strokeStyle = rgba("mid", 0.18 + 0.4 * d); g.lineWidth = s.w * (0.4 + d);
+      line(g, CX + Math.cos(s.a) * r1, CY + Math.sin(s.a) * r1, CX + Math.cos(s.a) * r2, CY + Math.sin(s.a) * r2);
+    }
+    for (let i = 0; i < Wd.w.length; i++) {
+      const o = Math.abs(i - 2.5);
+      const p = eOutExpo(inv(o * 0.03, 0.32 + o * 0.03, u));
+      const z = 4200 * (1 - p), s = 1000 / (1000 + z);
+      if (p <= 0) continue;
+      g.save(); g.translate(CX + L.centers[i] * s * (1 + 0.6 * (1 - p)), CY + 10); g.scale(s, s);
+      g.fillStyle = rgba("deep", clamp(s * 1.4)); g.fillText(Wd.w[i], 0, 0); g.restore();
+    }
+  } else { // TIME. — clock + glitch slices with RGB split, then slice-wipe out
+    g.strokeStyle = rgba("ivory", 0.16); g.lineWidth = 2;
+    g.beginPath(); g.arc(CX, CY, 430, 0, TAU); g.stroke();
+    for (let k = 0; k < 60; k++) {
+      const a = (k / 60) * TAU, r0 = k % 5 === 0 ? 395 : 412;
+      g.strokeStyle = rgba(k % 5 === 0 ? "gold" : "ivory", k % 5 === 0 ? 0.8 : 0.25); g.lineWidth = k % 5 === 0 ? 4 : 2;
+      line(g, CX + Math.cos(a) * r0, CY + Math.sin(a) * r0, CX + Math.cos(a) * 428, CY + Math.sin(a) * 428);
+    }
+    const ha = -Math.PI / 2 + eOutExpo(inv(0, 0.4, u)) * TAU * 1.5;
+    g.strokeStyle = rgba("gold"); g.lineWidth = 6; g.lineCap = "round";
+    line(g, CX, CY, CX + Math.cos(ha) * 380, CY + Math.sin(ha) * 380);
+    // glitch
+    const amp = 190 * (1 - eOut3(inv(0, 0.2, u))) + 70 * Math.exp(-Math.pow((u - 0.27) / 0.02, 2));
+    const split = 5 + amp * 0.18, strips = 16, top = CY - 190, sh = 380 / strips, step = Math.floor(u * 30);
+    const tc = TIME_CANVAS;
+    for (let s = 0; s < strips; s++) {
+      const n = (noise1(s * 13.7 + step * 3.1) - 0.5) * 2, dx = n * amp, y = top + s * sh;
+      const sy = y * DPR, shh = sh * DPR;
+      g.globalAlpha = 0.85; g.drawImage(tc.gold, 0, sy, W * DPR, shh, dx - split, y, W, sh);
+      g.drawImage(tc.mid, 0, sy, W * DPR, shh, dx + split, y, W, sh);
+      g.globalAlpha = 1; g.drawImage(tc.ivory, 0, sy, W * DPR, shh, dx, y, W, sh);
+    }
+    // slice wipe into the next scene's background
+    for (let b = 0; b < 12; b++) {
+      const p = eInOut3(inv(0.3 + b * 0.01, 0.46 + b * 0.01, u)); if (p <= 0) continue;
+      g.fillStyle = rgba("deep");
+      if (b % 2) g.fillRect(b * 160, 0, 161, H * p); else g.fillRect(b * 160, H * (1 - p), 161, H * p);
+    }
+  }
+}
+
+// ============================ 03 GEOMETRY (4 - 6) ============================
+const CELLS = [];
+for (let j = 0; j < 9; j++) for (let i = 0; i < 17; i++) {
+  const x = CX + (i - 8) * 120, y = CY + (j - 4) * 120;
+  CELLS.push({ x, y, d: Math.hypot(i - 8, j - 4), ring: (i + j) % 2 === 1, center: i === 8 && j === 4 });
+}
+function scene3(g, lt) {
+  flat(g, "deep");
+  const pz = inv(1.3, 2.0, lt), Z = Math.pow(48, eIn3(pz)), rot = 0.7 * eIn3(pz);
+  g.save(); g.translate(CX, CY); g.scale(Z, Z); g.rotate(rot); g.translate(-CX, -CY);
+  grid(g, 0.05, "ivory", 120, 60, 60);
+  for (const c of CELLS) {
+    const appear = eOutBack(inv(c.d * 0.04, 0.32 + c.d * 0.04, lt));
+    if (appear <= 0) continue;
+    const wave = Math.sin(lt * 5.5 - c.d * 0.85);
+    const rip = lt > 1 ? Math.exp(-Math.pow(c.d - (lt - 1) * 16, 2) / 3) : 0;
+    const m = 0.5 + 0.5 * wave;
+    const s = (30 + 10 * wave + 22 * rip) * appear;
+    if (c.center) {
+      g.strokeStyle = rgba("gold"); g.lineWidth = 9;
+      g.beginPath(); g.arc(c.x, c.y, 36 * appear, 0, TAU); g.stroke();
+      continue;
+    }
+    g.save(); g.translate(c.x, c.y); g.rotate(m * Math.PI / 4 + rip * Math.PI / 2);
+    const col = mixStr("mid", "gold", clamp(0.25 + 0.35 * m + rip));
+    g.beginPath(); g.roundRect(-s, -s, s * 2, s * 2, s * (1 - m));
+    if (c.ring) { g.strokeStyle = col; g.lineWidth = 4; g.stroke(); } else { g.fillStyle = col; g.fill(); }
+    g.restore();
+  }
+  g.restore();
+}
+
+// ============================ 04+05 3D POINTS -> PARTICLES (6 - 10) ============================
+const N = 2600;
+const P = { sphere: new Float32Array(N * 3), torus: new Float32Array(N * 3), cube: new Float32Array(N * 3), text: new Float32Array(N * 3) };
+const PR = Array.from({ length: N }, () => ({ d: rng(), e: rng(), ax: rng() * TAU, sz: 0.7 + rng() * 0.6 }));
+(function buildShapes() {
+  const ga = Math.PI * (3 - Math.sqrt(5));
+  for (let i = 0; i < N; i++) {
+    const y = 1 - (2 * (i + 0.5)) / N, r = Math.sqrt(1 - y * y), th = ga * i;
+    P.sphere.set([Math.cos(th) * r, y, Math.sin(th) * r], i * 3);
+    const uu = ((i % 65) / 65) * TAU, vv = (Math.floor(i / 65) / 40) * TAU, R = 0.78, rr = 0.34;
+    P.torus.set([(R + rr * Math.cos(vv)) * Math.cos(uu), rr * Math.sin(vv), (R + rr * Math.cos(vv)) * Math.sin(uu)], i * 3);
+    const e = i % 12, k = Math.floor(i / 12) / Math.ceil(N / 12) * 2 - 1, s = 0.72;
+    const axis = Math.floor(e / 4), a = e % 4, sa = (a & 1 ? 1 : -1) * s, sb = (a & 2 ? 1 : -1) * s;
+    const p = axis === 0 ? [k * s, sa, sb] : axis === 1 ? [sa, k * s, sb] : [sa, sb, k * s];
+    P.cube.set(p, i * 3);
+  }
+})();
+function buildTextPoints() {
+  const [c, g] = [document.createElement("canvas"), null];
+  c.width = W; c.height = H; const x = c.getContext("2d");
+  x.fillStyle = "#fff"; x.textAlign = "center"; x.textBaseline = "middle"; x.font = LATO(900, 330); x.letterSpacing = "18px";
+  x.fillText("CLAUDE", CX + 9, CY);
+  const img = x.getImageData(0, 0, W, H).data;
+  let area = 0; for (let i = 3; i < img.length; i += 4) if (img[i] > 128) area++;
+  const step = Math.sqrt(area / (N * 1.08));
+  const pts = [];
+  for (let y = 0; y < H; y += step) for (let xx = 0; xx < W; xx += step) {
+    const jx = xx + (rng() - 0.5) * step * 0.5, jy = y + (rng() - 0.5) * step * 0.5;
+    const ix = Math.round(jx), iy = Math.round(jy);
+    if (ix < 0 || iy < 0 || ix >= W || iy >= H) continue;
+    if (img[(iy * W + ix) * 4 + 3] > 128) pts.push([jx - CX, jy - CY]);
+  }
+  for (let i = pts.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); [pts[i], pts[j]] = [pts[j], pts[i]]; }
+  for (let i = 0; i < N; i++) { const p = pts[i % pts.length]; P.text.set([p[0], p[1], 0], i * 3); }
+}
+const COLS = Array.from({ length: 24 }, (_, i) => mixStr("mid", "gold", i / 23));
+const ORDER = new Uint16Array(N), DEPTH = new Float32Array(N), SX = new Float32Array(N), SY = new Float32Array(N), SR = new Float32Array(N), SC = new Uint8Array(N), SH = new Float32Array(N);
+function scene45(g, lt) {
+  bg(g, "royal", "deep");
+  grid(g, 0.035, "ivory", 120);
+  const arrive = 1 + 5 * (1 - eOutExpo(inv(0, 0.9, lt)));
+  const R = 330 * arrive;
+  const rotY = lt * 1.25 + 1.4 * eInOut3(inv(0.85, 1.25, lt)) + 1.4 * eInOut3(inv(1.42, 1.82, lt));
+  const rotX = 0.45 + 0.18 * Math.sin(lt * 1.6);
+  const cy = Math.cos(rotY), sy = Math.sin(rotY), cx = Math.cos(rotX), sx = Math.sin(rotX);
+  const textMode = inv(2.0, 2.6, lt), explode = inv(3.45, 4.0, lt);
+  const shineX = -1300 + 2800 * eInOut3(inv(2.7, 3.35, lt));
+
+  // soft glow behind the form
+  const glowR = lerp(520, 900, textMode) * (1 - explode * 0.5);
+  const gl = g.createRadialGradient(CX, CY, 0, CX, CY, glowR);
+  gl.addColorStop(0, rgba("gold", 0.16 * (1 - explode))); gl.addColorStop(1, rgba("gold", 0));
+  g.fillStyle = gl; g.fillRect(0, 0, W, H);
+
+  // orbit rings around the 3D form
+  const ringA = (1 - textMode) * eOut3(inv(0.2, 0.8, lt));
+  if (ringA > 0) {
+    g.lineWidth = 1.5;
+    for (let k = 0; k < 2; k++) {
+      g.strokeStyle = rgba(k ? "ivory" : "gold", 0.25 * ringA);
+      g.beginPath(); g.ellipse(CX, CY, R * (1.45 + k * 0.25), R * (0.32 + k * 0.1), (k ? -0.35 : 0.25) + lt * 0.2 * (k ? -1 : 1), 0, TAU); g.stroke();
+    }
+  }
+
+  for (let i = 0; i < N; i++) {
+    const r = PR[i], o = i * 3;
+    const m1 = eInOut3(inv(0.85 + r.d * 0.12, 1.12 + r.d * 0.12, lt));
+    const m2 = eInOut3(inv(1.42 + r.d * 0.12, 1.7 + r.d * 0.12, lt));
+    let x = lerp(lerp(P.sphere[o], P.torus[o], m1), P.cube[o], m2);
+    let y = lerp(lerp(P.sphere[o + 1], P.torus[o + 1], m1), P.cube[o + 1], m2);
+    let z = lerp(lerp(P.sphere[o + 2], P.torus[o + 2], m1), P.cube[o + 2], m2);
+    x *= R; y *= R; z *= R;
+    // rotate Y then X
+    let x1 = x * cy + z * sy, z1 = -x * sy + z * cy;
+    let y1 = y * cx - z1 * sx, z2 = y * sx + z1 * cx;
+    // fly to the word, staggered left-to-right with a swoop toward camera
+    const tx = P.text[o], ty = P.text[o + 1];
+    const md = clamp((tx + 700) / 1400) * 0.4 + r.d * 0.25;
+    const mt = eInOut3(inv(2.0 + md, 2.38 + md, lt));
+    x1 = lerp(x1, tx, mt); y1 = lerp(y1, ty, mt); z2 = lerp(z2, 0, mt) - Math.sin(mt * Math.PI) * 500 * (0.4 + r.e);
+    // jitter while holding
+    if (mt >= 1 && explode <= 0) { x1 += (noise1(i * 0.37 + lt * 6) - 0.5) * 2.2; y1 += (noise1(i * 0.53 + lt * 6 + 50) - 0.5) * 2.2; }
+    // explode
+    if (explode > 0) {
+      const e2 = explode * explode, ang = Math.atan2(y1, x1) + (r.ax - Math.PI) * 0.35, sp = 2300 * e2 * (0.4 + r.e);
+      x1 += Math.cos(ang) * sp + 900 * e2; y1 += Math.sin(ang) * sp * 0.7; z2 -= 900 * e2 * r.d;
+    }
+    const zc = z2 + 1500, ps = 1150 / Math.max(60, zc);
+    SX[i] = CX + x1 * ps; SY[i] = CY + y1 * ps; DEPTH[i] = zc;
+    const shine = mt > 0.5 ? Math.exp(-Math.pow((tx + ty * 0.45 - shineX) / 110, 2)) : 0;
+    SH[i] = shine;
+    SR[i] = zc < 350 ? 0 : Math.min(9, (2.4 + 0.6 * mt) * ps * r.sz * (1 + shine * 0.8));
+    const depthCol = clamp(0.5 - z2 / (R * 2) * 1.0);
+    SC[i] = Math.round(clamp(lerp(depthCol, 1, mt)) * 23);
+    ORDER[i] = i;
+  }
+  ORDER.sort((a, b) => DEPTH[b] - DEPTH[a]);
+  const alpha = 1 - eIn3(inv(0.75, 1.0, explode));
+  let last = -1;
+  for (let k = 0; k < N; k++) {
+    const i = ORDER[k];
+    if (SR[i] < 0.15 || SX[i] < -50 || SX[i] > W + 50 || SY[i] < -50 || SY[i] > H + 50) continue;
+    const col = SH[i] > 0.3 ? 99 : SC[i];
+    if (col !== last) { g.fillStyle = col === 99 ? rgba("white", alpha) : COLS[col]; last = col; g.globalAlpha = alpha; }
+    g.beginPath(); g.arc(SX[i], SY[i], SR[i], 0, TAU); g.fill();
+  }
+  g.globalAlpha = 1;
+
+  // caption under the word
+  const capA = eOut3(inv(2.75, 3.05, lt)) * (1 - eIn3(inv(3.35, 3.5, lt)));
+  if (capA > 0) {
+    g.textBaseline = "middle"; g.font = LATO(900, 26); g.fillStyle = rgba("gold", capA);
+    spaced(g, "2,600 PARTICLES  ·  ONE IDEA", CX, CY + 250 + 20 * (1 - capA), 12);
+  }
+}
+
+// ============================ 06 DATA (10 - 11.85) ============================
+const BARS = Array.from({ length: 34 }, (_, i) => 0.25 + 0.75 * (0.5 + 0.5 * Math.sin(i * 0.5 + 0.8)) * (0.6 + 0.4 * rng()));
+const SKILLS = "KINETIC TYPE   ✦   GEOMETRY   ✦   3D   ✦   PARTICLES   ✦   DATA VIZ   ✦   GENERATIVE   ✦   SOUND SYNC   ✦   ";
+function scene6(g, lt) {
+  bg(g, "royal", "deep");
+  grid(g, 0.04, "ivory", 120, -lt * 60, 0);
+  g.textBaseline = "middle";
+  // header
+  const ph = eOutExpo(inv(0.05, 0.5, lt));
+  g.font = LATO(900, 26); g.fillStyle = rgba("gold", ph);
+  const hw = spaced(g, "THE REEL, BY THE NUMBERS", CX, 230, 12);
+  g.strokeStyle = rgba("gold", 0.5 * ph); g.lineWidth = 2;
+  line(g, CX - hw / 2 - 30, 230, CX - hw / 2 - 30 - 300 * ph, 230); line(g, CX + hw / 2 + 30, 230, CX + hw / 2 + 30 + 300 * ph, 230);
+  // stat columns whip in from the right
+  const stats = [
+    { v: () => String(Math.round(450 * eOut3(inv(0.1, 0.9, lt)))), l: "FRAMES" },
+    { v: () => String(Math.round(999 * (1 - eOut3(inv(0.15, 0.95, lt))))), l: "KEYFRAMES" },
+    { v: () => Math.round(100 * eOut3(inv(0.2, 1.0, lt))) + "%", l: "CODE" },
+  ];
+  stats.forEach((s, c) => {
+    const p = eOutExpo(inv(c * 0.07, 0.55 + c * 0.07, lt)), x = 400 + c * 560 + 1500 * (1 - p);
+    g.textAlign = "center"; g.font = LATO(900, 160); g.fillStyle = rgba("ivory");
+    g.fillText(s.v(), x, 430);
+    g.font = LATO(400, 24); g.fillStyle = rgba("muted"); spaced(g, s.l, x, 535, 10);
+    const pb = eOutExpo(inv(0.35 + c * 0.08, 0.9 + c * 0.08, lt));
+    g.fillStyle = rgba("gold"); g.fillRect(x - 110, 570, 220 * pb, 6);
+  });
+  // bar chart springs up, line chart draws across
+  const x0 = 160, x1 = 1760, base = 880, bw = (x1 - x0) / BARS.length;
+  BARS.forEach((h, i) => {
+    const p = spring(inv(0.2 + i * 0.016, 0.7 + i * 0.016, lt), 1.2, 5);
+    const bh = 150 * h * p; if (bh <= 0) return;
+    g.fillStyle = rgba("mid", 0.9); g.fillRect(x0 + i * bw + 4, base - bh, bw - 8, bh);
+    g.fillStyle = rgba("gold"); g.fillRect(x0 + i * bw + 4, base - bh, bw - 8, 4);
+  });
+  const pl = eInOut3(inv(0.35, 1.3, lt)), xe = x0 + (x1 - x0) * pl;
+  const fy = (x) => 700 - 55 * Math.sin((x - x0) * 0.006 + 0.4) - 30 * Math.sin((x - x0) * 0.017);
+  if (pl > 0) {
+    g.strokeStyle = rgba("gold"); g.lineWidth = 4; g.lineJoin = "round"; g.beginPath();
+    for (let x = x0; x <= xe; x += 8) (x === x0 ? g.moveTo(x, fy(x)) : g.lineTo(x, fy(x)));
+    g.lineTo(xe, fy(xe)); g.stroke();
+    g.fillStyle = rgba("ivory"); g.beginPath(); g.arc(xe, fy(xe), 9, 0, TAU); g.fill();
+    g.strokeStyle = rgba("ivory", 0.4); g.lineWidth = 2; g.beginPath(); g.arc(xe, fy(xe), 18 + 6 * Math.sin(lt * 20), 0, TAU); g.stroke();
+  }
+  g.strokeStyle = rgba("ivory", 0.25); g.lineWidth = 2; line(g, x0, base + 2, x0 + (x1 - x0) * eOutExpo(inv(0.1, 0.6, lt)), base + 2);
+  // skills ticker
+  g.font = LATO(900, 24); g.letterSpacing = "8px";
+  const sw = g.measureText(SKILLS).width, off = -((lt * 260) % sw);
+  g.textAlign = "left"; g.fillStyle = rgba("ivory", 0.85 * eOut3(inv(0.2, 0.5, lt)));
+  for (let k = 0; k < 3; k++) g.fillText(SKILLS, off + k * sw, 945);
+  g.letterSpacing = "0px";
+  // gold iris out
+  const pi = eIn3(inv(1.45, 1.85, lt));
+  if (pi > 0) { g.fillStyle = rgba("gold"); g.beginPath(); g.arc(CX, CY, 1150 * pi, 0, TAU); g.fill(); }
+}
+
+// ============================ 07 FINALE (11.85 - 15) ============================
+const DUST = Array.from({ length: 80 }, () => ({ x: rng() * W, y: rng() * H, s: 0.6 + rng() * 2.2, v: 20 + rng() * 50, ph: rng() * TAU }));
+const TAG = [
+  { text: ["Don’t", "let", "yesterday’s", "limitations"], y: 680, gold: [] },
+  { text: ["become", "today’s", "expectations."], y: 772, gold: [1, 2] },
+];
+function scene7(g, lt) {
+  bg(g, "royal", "deep");
+  const push = 1 + 0.035 * eInOut3(inv(0, 3.15, lt));
+  g.save(); g.translate(CX, CY); g.scale(push, push); g.translate(-CX, -CY);
+  // dust
+  for (const d of DUST) {
+    const y = ((d.y - lt * d.v) % H + H) % H, a = 0.25 + 0.25 * Math.sin(lt * 3 + d.ph);
+    g.fillStyle = rgba("gold", a * eOut3(inv(0.3, 1.0, lt))); g.beginPath(); g.arc(d.x, y, d.s, 0, TAU); g.fill();
+  }
+  const lift = 115 * (1 - eInOut3(inv(1.0, 1.5, lt)));
+  g.textBaseline = "middle"; g.textAlign = "center";
+  // CLAUDE — each letter rises out of a mask
+  const word = "CLAUDE", F = LATO(900, 230), L = layout(g, word, F, 14), ty = 330 + lift;
+  g.save(); g.beginPath(); g.rect(0, ty - 125, W, 250); g.clip();
+  g.font = F;
+  for (let i = 0; i < word.length; i++) {
+    const p = eOutExpo(inv(0.12 + i * 0.05, 0.75 + i * 0.05, lt));
+    g.fillStyle = rgba("ivory"); g.fillText(word[i], CX + L.centers[i], ty + 260 * (1 - p));
+  }
+  g.restore();
+  // gold rule + role
+  const pr = eOutExpo(inv(0.45, 1.0, lt));
+  g.fillStyle = rgba("gold"); g.fillRect(CX - 280 * pr, 455 + lift, 560 * pr, 5);
+  const pm = eOut3(inv(0.55, 1.1, lt));
+  g.font = LATO(900, 40); g.fillStyle = rgba("gold", pm);
+  spaced(g, "MOTION DESIGNER", CX, 510 + lift, lerp(4, 22, eOutExpo(inv(0.55, 1.4, lt))));
+  // the closing line, word by word
+  g.font = SERIF(500, 78);
+  let wi = 0;
+  for (const ln of TAG) {
+    const full = ln.text.join(" "), total = g.measureText(full).width;
+    let x = CX - total / 2;
+    ln.text.forEach((w, k) => {
+      const ww = g.measureText(w).width, p = eOut3(inv(1.3 + wi * 0.11, 1.8 + wi * 0.11, lt));
+      if (p > 0) {
+        g.save(); g.globalAlpha = p; if (p < 1) g.filter = `blur(${(1 - p) * 10}px)`;
+        g.fillStyle = rgba(ln.gold.includes(k) ? "gold" : "ivory"); g.textAlign = "left";
+        g.fillText(w, x, ln.y + 30 * (1 - p)); g.restore();
+      }
+      x += ww + g.measureText(" ").width; wi++;
+    });
+  }
+  // underline sweeps under "today's expectations."
+  const pu = eInOut3(inv(2.35, 2.85, lt));
+  if (pu > 0) {
+    const t2 = TAG[1], full = t2.text.join(" "), total = g.measureText(full).width, sx = CX - total / 2 + g.measureText("become ").width, ex = CX + total / 2;
+    g.fillStyle = rgba("gold", 0.9); g.fillRect(sx, t2.y + 52, (ex - sx) * pu, 3);
+  }
+  g.font = LATO(400, 20); g.fillStyle = rgba("muted", 0.9 * eOut3(inv(2.3, 2.8, lt)));
+  spaced(g, "EVERY FRAME IN THIS REEL WAS WRITTEN AS CODE", CX, 965, 9);
+  g.restore();
+  // ring wipe open from the gold
+  const ph = eOutExpo(inv(0, 0.65, lt));
+  if (ph < 1) {
+    g.fillStyle = rgba("gold"); g.beginPath(); g.rect(-200, -200, W + 400, H + 400);
+    g.arc(CX, CY, 1200 * ph, 0, TAU, true); g.fill("evenodd");
+  }
+}
+
+// ============================ Timeline ============================
+const SCENES = [
+  { a: 0, b: 2, fn: scene1, n: "01", name: "IGNITION" },
+  { a: 2, b: 4, fn: scene2, n: "02", name: "KINETIC TYPE" },
+  { a: 4, b: 6, fn: scene3, n: "03", name: "GEOMETRY" },
+  { a: 6, b: 8, fn: scene45, n: "04", name: "3D  ·  NO ENGINE", from: 6 },
+  { a: 8, b: 10, fn: scene45, n: "05", name: "PARTICLES", from: 6 },
+  { a: 10, b: 11.85, fn: scene6, n: "06", name: "DATA IN MOTION" },
+  { a: 11.85, b: 15.01, fn: scene7, n: "07", name: "" },
+];
+const sceneAt = (t) => SCENES.find((s) => t >= s.a && t < s.b) || SCENES[SCENES.length - 1];
+
+function drawFrame(g, t) {
+  g.setTransform(DPR, 0, 0, DPR, 0, 0);
+  const s = sceneAt(t), sh = shake(t);
+  g.save();
+  g.translate(CX + sh.x, CY + sh.y); g.rotate(sh.r); g.translate(-CX, -CY);
+  s.fn(g, t - (s.from ?? s.a));
+  g.restore();
+  const f = flash(t);
+  if (f > 0) { g.fillStyle = rgba("white", f); g.fillRect(0, 0, W, H); }
+}
+
+// Motion blur windows: [from, to, samples, shutter seconds]
+const BLUR = [
+  [0.98, 1.5, 5, 1 / 40], [1.7, 2.05, 5, 1 / 40], [2.0, 4.05, 4, 1 / 50], [5.3, 6.2, 6, 1 / 30], [6.0, 6.7, 5, 1 / 40],
+  [6.8, 7.95, 4, 1 / 45], [7.95, 8.8, 5, 1 / 35], [9.4, 10.2, 7, 1 / 25], [10.0, 10.45, 5, 1 / 35], [11.4, 11.8, 5, 1 / 35], [11.8, 12.4, 10, 1 / 40],
+];
+// Hard cuts: blur samples never reach back across one (no ghosting of the previous shot).
+const CUTS = [2.0, 2.5, 3.0, 3.5, 4.0, 6.0, 10.0, 11.85];
+const shotStart = (t) => CUTS.reduce((m, c) => (c <= t + 1e-6 ? c : m), 0);
+function blurAt(t) { for (const b of BLUR) if (t >= b[0] && t < b[1]) return [b[2], b[3]]; return [1, 0]; }
+
+// ============================ Overlays: vignette, grain, HUD ============================
+let GRAIN = [];
+function buildGrain() {
+  for (let k = 0; k < 6; k++) {
+    const c = document.createElement("canvas"); c.width = c.height = 256; const x = c.getContext("2d");
+    const im = x.createImageData(256, 256);
+    for (let i = 0; i < im.data.length; i += 4) { const v = rng() * 255; im.data[i] = im.data[i + 1] = im.data[i + 2] = v; im.data[i + 3] = 255; }
+    x.putImageData(im, 0, 0); GRAIN.push(ctx.createPattern(c, "repeat"));
+  }
+}
+function hudColor(t) {
+  if (t >= 2 && t < 4) { const i = Math.min(3, Math.floor((t - 2) / 0.5)); return WORDS[i].fg === "deep" ? "deep" : "ivory"; }
+  return "ivory";
+}
+function overlays(g, t) {
+  // vignette
+  const v = g.createRadialGradient(CX, CY, 420, CX, CY, 1180);
+  v.addColorStop(0, "rgba(3,14,30,0)"); v.addColorStop(1, "rgba(3,14,30,0.5)");
+  g.fillStyle = v; g.fillRect(0, 0, W, H);
+  // film grain
+  const frame = Math.round(t * FPS);
+  g.save(); g.globalCompositeOperation = "overlay"; g.globalAlpha = 0.07;
+  g.translate(-(frame * 97) % 256, -(frame * 61) % 256);
+  g.fillStyle = GRAIN[frame % GRAIN.length]; g.fillRect(0, 0, W + 512, H + 512); g.restore();
+  // HUD
+  const a = eOut3(inv(0.15, 0.6, t)) * (1 - eOut3(inv(11.6, 11.9, t)));
+  if (a <= 0) return;
+  const col = hudColor(t), s = sceneAt(t);
+  g.textBaseline = "middle"; g.lineWidth = 2; g.strokeStyle = rgba(col, 0.5 * a);
+  const m = 48, k = 26;
+  [[m, m, 1, 1], [W - m, m, -1, 1], [m, H - m, 1, -1], [W - m, H - m, -1, -1]].forEach(([x, y, dx, dy]) => {
+    g.beginPath(); g.moveTo(x + dx * k, y); g.lineTo(x, y); g.lineTo(x, y + dy * k); g.stroke();
+  });
+  g.font = LATO(900, 18); g.fillStyle = rgba(col, 0.9 * a); spaced(g, "CLAUDE", 86, 84, 6, "left");
+  g.font = LATO(400, 18); g.fillStyle = rgba(col, 0.6 * a); spaced(g, "MOTION REEL  2026", 196, 84, 5, "left");
+  // timecode, fixed-width digits
+  const ss = Math.floor(frame / FPS), ff = frame % FPS;
+  const tc = `00:00:${String(ss).padStart(2, "0")}:${String(ff).padStart(2, "0")}`;
+  g.font = LATO(900, 18); g.fillStyle = rgba(col, 0.9 * a); g.textAlign = "center";
+  for (let i = 0; i < tc.length; i++) g.fillText(tc[tc.length - 1 - i], W - 92 - i * 13, 84);
+  g.fillStyle = rgba("gold", a * (0.5 + 0.5 * (Math.floor(t * 4) % 2))); g.beginPath(); g.arc(W - 92 - tc.length * 13 - 14, 84, 5, 0, TAU); g.fill();
+  if (s.name) {
+    g.font = LATO(900, 18); g.fillStyle = rgba(col === "deep" ? "deep" : "gold", 0.95 * a); spaced(g, s.n, 86, H - 84, 4, "left");
+    g.font = LATO(400, 18); g.fillStyle = rgba(col, 0.8 * a); spaced(g, s.name, 126, H - 84, 6, "left");
+  }
+  g.font = LATO(400, 18); g.fillStyle = rgba(col, 0.6 * a);
+  spaced(g, `FRAME ${String(frame).padStart(4, "0")} / 0450`, W - 86, H - 84, 4, "right");
+  // progress
+  g.fillStyle = rgba(col, 0.15 * a); g.fillRect(m, H - 30, W - 2 * m, 2);
+  g.fillStyle = rgba(col === "deep" ? "deep" : "gold", 0.9 * a); g.fillRect(m, H - 30, (W - 2 * m) * (t / 15), 2);
+}
+
+// ============================ Ready + render ============================
+window.READY = (async () => {
+  await Promise.all([LATO(900, 100), LATO(400, 100), SERIF(500, 100)].map((f) => document.fonts.load(f)));
+  buildTextPoints();
+  buildGrain();
+  const mk = (color) => { const [c, g] = makeCanvas(); g.setTransform(DPR, 0, 0, DPR, 0, 0); g.font = LATO(900, 320); g.textAlign = "center"; g.textBaseline = "middle"; g.fillStyle = rgba(color); g.fillText("TIME.", CX, CY + 10); return c; };
+  TIME_CANVAS = { ivory: mk("ivory"), gold: mk("gold"), mid: mk("mid") };
+})();
+
+window.render = async (t) => {
+  await window.READY;
+  const [n, shutter] = blurAt(t);
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  for (let k = 0; k < n; k++) {
+    const tk = Math.max(shotStart(t), n === 1 ? t : t - shutter * (1 - k / (n - 1)));
+    drawFrame(sg, tk);
+    ctx.globalAlpha = 1 / (k + 1);
+    ctx.drawImage(sceneCv, 0, 0);
+  }
+  ctx.globalAlpha = 1;
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  overlays(ctx, t);
+};
+</script>
+</body>
+</html>

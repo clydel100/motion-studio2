@@ -14,6 +14,8 @@ window.render = (t) => { ... }; // draw the exact frame at time t (seconds)
 
 Optional: `window.AUDIO = "../audio/track.wav";` adds a soundtrack to the MP4, and `window.READY = promise` makes the renderer wait (e.g. for images) before capturing.
 
+Showreel: `videos/showreel.html` is a 15-second motion design reel (kinetic type, geometry, 3D points, particles, data viz, real motion blur), scored by `python3 scripts/compose-showreel-score.py` -> `audio/showreel-score.wav`.
+
 Music: `python3 scripts/compose-devotional-score.py` writes `audio/devotional-score.wav`, an original score composed in code (no samples, no licensing issues).
 
 No CSS animations, transitions, timers or `requestAnimationFrame` loops: all motion comes from `render(t)`. See `videos/hello.html`.
