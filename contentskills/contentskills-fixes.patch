@@ -1,0 +1,28 @@
+diff --git a/pipeline/browser.mjs b/pipeline/browser.mjs
+index 030060b..33599fe 100644
+--- a/pipeline/browser.mjs
++++ b/pipeline/browser.mjs
+@@ -18,7 +18,7 @@ export async function openDraft(project, {width, height, scale = 1, cut = 'all',
+   const close = async () => {
+     server.close(); server.closeAllConnections?.();      // do not wait for the browser's idle connections to time out
+     chrome.kill(); await new Promise(r => chrome.exitCode === null ? chrome.once('exit', r) : r());
+-    rmSync(profile, {recursive: true, force: true});
++    try { rmSync(profile, {recursive: true, force: true, maxRetries: 10, retryDelay: 200}); } catch {}  // Chrome's helper processes can still be writing to it for a moment
+   };
+   try {
+     const wsUrl = await new Promise((ok, bad) => {
+diff --git a/pipeline/draft/player.js b/pipeline/draft/player.js
+index f6112ff..a83225c 100644
+--- a/pipeline/draft/player.js
++++ b/pipeline/draft/player.js
+@@ -70,7 +70,9 @@ if (!project) {
+       if (piece.background && className === 'visual') host.style.background = piece.background;
+       // a theme's ambient layer (kit sets el.__ambient) keeps moving on the shot's own clock, past the piece's duration
+       const amb = () => host.__ambient ?? host.querySelector('*')?.__ambient;
+-      return local => { piece.seek(piece.loops ? local % piece.duration : Math.min(local, piece.duration)); amb()?.(local); };
++      // "speed" on the slot plays the piece's own animation faster (2 = twice as fast), so a 5 s title lands inside a 2.5 s shot
++      const speed = spec.speed ?? 1;
++      return local => { const at = local * speed; piece.seek(piece.loops ? at % piece.duration : Math.min(at, piece.duration)); amb()?.(local); };
+     };
+     const background = await slot('bg', shot.background);
+     if (shot.title) root.append(el('div', {className: 'heading'}, shot.title));

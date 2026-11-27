@@ -1,0 +1,660 @@
+{
+  "title": "You were never meant to live afraid",
+  "theme": "lines-of-light",
+  "format": {
+    "width": 1080,
+    "height": 1920,
+    "fps": 30
+  },
+  "captions": "landing",
+  "lead": 0,
+  "room": {
+    "scale": 0.8,
+    "origin": "50% 13%"
+  },
+  "voice": {
+    "provider": "kokoro",
+    "voice": "af_maple",
+    "speed": 1
+  },
+  "sections": [
+    {
+      "id": "hook",
+      "title": "Never meant to live afraid",
+      "shots": [
+        "hook"
+      ],
+      "job": "hook"
+    },
+    {
+      "id": "parable",
+      "title": "The eagle raised among chickens",
+      "shots": [
+        "egg",
+        "hen",
+        "dirt",
+        "shadow",
+        "soaring",
+        "dream",
+        "died"
+      ],
+      "job": "demo"
+    },
+    {
+      "id": "turn",
+      "title": "Fear is training, not nature",
+      "shots": [
+        "hear",
+        "training",
+        "spirit",
+        "power"
+      ],
+      "job": "turn"
+    },
+    {
+      "id": "payoff",
+      "title": "Your identity is in Christ",
+      "shots": [
+        "identity",
+        "christ",
+        "name"
+      ],
+      "job": "payoff"
+    },
+    {
+      "id": "ask",
+      "title": "Comment IDENTITY",
+      "shots": [
+        "cta"
+      ],
+      "job": "ask"
+    }
+  ],
+  "shots": [
+    {
+      "id": "hook",
+      "narration": "You were never meant to live afraid.",
+      "candidates": [
+        {
+          "background": {
+            "piece": "text/headline-slam",
+            "props": {
+              "lines": [
+                "NEVER",
+                "AFRAID"
+              ],
+              "kicker": "",
+              "note": "",
+              "labels": [
+                "",
+                "",
+                "",
+                ""
+              ],
+              "foot": [
+                ""
+              ],
+              "field": "teal"
+            },
+            "speed": 1.8
+          },
+          "status": "usable"
+        },
+        {
+          "background": {
+            "piece": "text/split-stack",
+            "props": {
+              "top": "NEVER",
+              "bottom": "AFRAID",
+              "caption": "YOU WERE NEVER\nMEANT TO LIVE",
+              "note": "",
+              "labels": [
+                "",
+                "",
+                "",
+                ""
+              ],
+              "field": "black"
+            },
+            "speed": 2.4
+          }
+        }
+      ],
+      "pick": 0
+    },
+    {
+      "id": "egg",
+      "narration": "A farmer once found an eagle's egg",
+      "candidates": [
+        {
+          "background": {
+            "piece": "three/light-torus",
+            "props": {}
+          },
+          "status": "usable"
+        },
+        {
+          "background": {
+            "piece": "three/wire-globe",
+            "props": {}
+          }
+        }
+      ],
+      "pick": 0
+    },
+    {
+      "id": "hen",
+      "narration": "and set it under a hen.",
+      "candidates": [
+        {
+          "background": {
+            "piece": "text/keyword-slam",
+            "props": {
+              "word": "UNDER A HEN",
+              "kicker": "RAISED AS SOMETHING ELSE",
+              "y": 760
+            },
+            "speed": 1.6
+          },
+          "status": "usable"
+        },
+        {
+          "background": {
+            "piece": "text/statement",
+            "props": {
+              "statement": "He set it under a hen",
+              "emphasis": [
+                "HEN"
+              ],
+              "tag": "A PARABLE",
+              "labels": [
+                "",
+                "",
+                "",
+                ""
+              ],
+              "foot": "",
+              "field": "deep"
+            },
+            "speed": 2.4
+          }
+        }
+      ],
+      "pick": 0
+    },
+    {
+      "id": "dirt",
+      "narration": "The eagle grew up in the dirt with the chickens.",
+      "candidates": [
+        {
+          "background": {
+            "piece": "three/grid-horizon",
+            "props": {}
+          },
+          "status": "usable"
+        },
+        {
+          "background": {
+            "piece": "text/marquee-wall",
+            "props": {
+              "field": "black"
+            },
+            "speed": 2.4
+          }
+        }
+      ],
+      "pick": 0
+    },
+    {
+      "id": "shadow",
+      "narration": "Every time a shadow crossed the sky, it ran and hid.",
+      "candidates": [
+        {
+          "background": {
+            "piece": "three/wire-tunnel",
+            "props": {}
+          },
+          "status": "usable"
+        },
+        {
+          "background": {
+            "piece": "text/keyword-slam",
+            "props": {
+              "word": "IT HID",
+              "kicker": "EVERY SHADOW",
+              "y": 760
+            },
+            "speed": 1.6
+          }
+        }
+      ],
+      "pick": 0
+    },
+    {
+      "id": "soaring",
+      "narration": "One day it looked up and saw an eagle soaring.",
+      "candidates": [
+        {
+          "background": {
+            "piece": "three/light-beam",
+            "props": {}
+          },
+          "status": "usable"
+        },
+        {
+          "background": {
+            "piece": "three/orbit-ribbons",
+            "props": {}
+          }
+        }
+      ],
+      "pick": 0
+    },
+    {
+      "id": "dream",
+      "narration": "\"Don't even dream it,\" the chickens said.",
+      "candidates": [
+        {
+          "background": {
+            "piece": "text/quote-card",
+            "props": {
+              "quote": "Don't even dream it",
+              "by": "THE CHICKENS",
+              "role": "EVERY VOICE OF FEAR",
+              "labels": [
+                "",
+                "",
+                "",
+                ""
+              ],
+              "field": "ember"
+            },
+            "speed": 2.4
+          }
+        },
+        {
+          "background": {
+            "piece": "text/statement",
+            "props": {
+              "statement": "Don't even dream it",
+              "emphasis": [
+                "DREAM"
+              ],
+              "tag": "THE CHICKENS",
+              "labels": [
+                "",
+                "",
+                "",
+                ""
+              ],
+              "foot": "",
+              "field": "ember"
+            },
+            "speed": 2.4
+          },
+          "status": "usable"
+        }
+      ],
+      "pick": 1
+    },
+    {
+      "id": "died",
+      "narration": "So it lived afraid, and died a chicken.",
+      "candidates": [
+        {
+          "background": {
+            "piece": "text/split-stack",
+            "props": {
+              "top": "LIVED",
+              "bottom": "AFRAID",
+              "caption": "AND DIED\nA CHICKEN",
+              "note": "",
+              "labels": [
+                "",
+                "",
+                "",
+                ""
+              ],
+              "field": "black"
+            },
+            "speed": 2.4
+          }
+        },
+        {
+          "background": {
+            "piece": "text/keyword-slam",
+            "props": {
+              "word": "DIED A CHICKEN",
+              "kicker": "SO IT LIVED AFRAID",
+              "y": 760
+            },
+            "speed": 1.6
+          },
+          "status": "usable"
+        }
+      ],
+      "transition": {
+        "name": "red_blue_cut",
+        "seconds": 0.5
+      },
+      "pick": 1
+    },
+    {
+      "id": "hear",
+      "narration": "Hear me.",
+      "candidates": [
+        {
+          "background": {
+            "piece": "text/keyword-slam",
+            "props": {
+              "word": "HEAR ME",
+              "kicker": "NOW",
+              "y": 760
+            },
+            "speed": 1.6
+          },
+          "status": "usable"
+        },
+        {
+          "background": {
+            "piece": "three/light-strands",
+            "props": {}
+          }
+        }
+      ],
+      "pick": 0
+    },
+    {
+      "id": "training",
+      "narration": "Fear is not your nature. It's your training.",
+      "candidates": [
+        {
+          "background": {
+            "piece": "text/versus",
+            "props": {
+              "a": "NATURE",
+              "b": "TRAINING",
+              "mark": "VS",
+              "aNote": "WHO YOU ARE",
+              "bNote": "WHAT YOU LEARNED",
+              "labels": [
+                "",
+                "",
+                "",
+                ""
+              ],
+              "field": "teal"
+            },
+            "speed": 2.4
+          },
+          "status": "usable"
+        },
+        {
+          "background": {
+            "piece": "text/split-stack",
+            "props": {
+              "top": "NOT NATURE",
+              "bottom": "TRAINING",
+              "caption": "FEAR IS",
+              "note": "",
+              "labels": [
+                "",
+                "",
+                "",
+                ""
+              ],
+              "field": "teal"
+            },
+            "speed": 2.4
+          }
+        }
+      ],
+      "pick": 0
+    },
+    {
+      "id": "spirit",
+      "narration": "God has not given you a spirit of fear,",
+      "candidates": [
+        {
+          "background": {
+            "piece": "text/quote-card",
+            "props": {
+              "quote": "God has not given you a spirit of fear",
+              "by": "2 TIMOTHY 1:7",
+              "role": "THE WORD",
+              "labels": [
+                "",
+                "",
+                "",
+                ""
+              ],
+              "field": "deep"
+            },
+            "speed": 2.4
+          }
+        },
+        {
+          "background": {
+            "piece": "text/statement",
+            "props": {
+              "statement": "God has not given you a spirit of fear",
+              "emphasis": [
+                "FEAR"
+              ],
+              "tag": "2 TIMOTHY 1:7",
+              "labels": [
+                "",
+                "",
+                "",
+                ""
+              ],
+              "foot": "",
+              "field": "deep"
+            },
+            "speed": 2.4
+          },
+          "status": "usable"
+        }
+      ],
+      "pick": 1
+    },
+    {
+      "id": "power",
+      "narration": "but of power, love, and a sound mind.",
+      "candidates": [
+        {
+          "background": {
+            "piece": "text/agenda",
+            "props": {
+              "title": "BUT OF",
+              "kicker": "2 TIMOTHY 1:7",
+              "items": [
+                "POWER",
+                "LOVE",
+                "A SOUND MIND"
+              ],
+              "labels": [
+                "",
+                "",
+                "",
+                ""
+              ],
+              "step": 0.7,
+              "field": "teal"
+            },
+            "speed": 2.4
+          },
+          "status": "usable"
+        },
+        {
+          "background": {
+            "piece": "three/light-beam",
+            "props": {}
+          }
+        }
+      ],
+      "pick": 0
+    },
+    {
+      "id": "identity",
+      "narration": "Your identity was never in the dirt.",
+      "candidates": [
+        {
+          "background": {
+            "piece": "text/statement",
+            "props": {
+              "statement": "Your identity was never in the dirt",
+              "emphasis": [
+                "IDENTITY"
+              ],
+              "tag": "HEAR THIS",
+              "labels": [
+                "",
+                "",
+                "",
+                ""
+              ],
+              "foot": "",
+              "field": "teal"
+            },
+            "speed": 2.4
+          },
+          "status": "usable"
+        },
+        {
+          "background": {
+            "piece": "text/keyword-slam",
+            "props": {
+              "word": "IDENTITY",
+              "kicker": "NEVER IN THE DIRT",
+              "y": 760
+            },
+            "speed": 1.6
+          }
+        }
+      ],
+      "pick": 0
+    },
+    {
+      "id": "christ",
+      "narration": "It's in Christ.",
+      "candidates": [
+        {
+          "background": {
+            "piece": "three/light-beam",
+            "props": {}
+          },
+          "visual": {
+            "piece": "text/keyword-slam",
+            "speed": 1.6,
+            "props": {
+              "word": "IN CHRIST",
+              "kicker": "YOUR IDENTITY IS",
+              "y": 520
+            }
+          }
+        },
+        {
+          "background": {
+            "piece": "text/keyword-slam",
+            "props": {
+              "word": "IN CHRIST",
+              "kicker": "YOUR IDENTITY IS",
+              "y": 760
+            },
+            "speed": 1.6
+          },
+          "status": "usable"
+        }
+      ],
+      "transition": {
+        "name": "ray_burst",
+        "seconds": 0.6
+      },
+      "pick": 1
+    },
+    {
+      "id": "name",
+      "narration": "Stop rehearsing your fear. Start remembering your name.",
+      "candidates": [
+        {
+          "background": {
+            "piece": "text/versus",
+            "props": {
+              "a": "REHEARSE FEAR",
+              "b": "REMEMBER NAME",
+              "mark": "VS",
+              "aNote": "STOP",
+              "bNote": "START",
+              "labels": [
+                "",
+                "",
+                "",
+                ""
+              ],
+              "field": "teal"
+            },
+            "speed": 2.4
+          },
+          "status": "usable"
+        },
+        {
+          "background": {
+            "piece": "text/split-stack",
+            "props": {
+              "top": "STOP FEAR",
+              "bottom": "YOUR NAME",
+              "caption": "REMEMBER",
+              "note": "",
+              "labels": [
+                "",
+                "",
+                "",
+                ""
+              ],
+              "field": "teal"
+            },
+            "speed": 2.4
+          }
+        }
+      ],
+      "pick": 0
+    },
+    {
+      "id": "cta",
+      "narration": "You were born for the sky. Comment IDENTITY if you're ready to fly.",
+      "candidates": [
+        {
+          "background": {
+            "piece": "text/end-card",
+            "props": {
+              "lines": [
+                "COMMENT",
+                "IDENTITY"
+              ],
+              "action": "YOU WERE BORN FOR THE SKY",
+              "handle": "",
+              "strip": "READY TO FLY",
+              "labels": [
+                "",
+                "",
+                "",
+                ""
+              ],
+              "field": "teal"
+            },
+            "speed": 1.6
+          },
+          "status": "usable"
+        },
+        {
+          "background": {
+            "piece": "three/grid-horizon",
+            "props": {}
+          }
+        }
+      ],
+      "pick": 0
+    }
+  ]
+}
